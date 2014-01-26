@@ -3,26 +3,17 @@
  */
 
 
-var imgElem = document.getElementById("img");;
-
-
-/**
- * Returns an ImageData object 
- * @param imgElem
- */
-function getPixelsFromImageElement(imgElem) {
-// imgElem must be on the same server otherwise a cross-origin error will be thrown "SECURITY_ERR: DOM Exception 18"
-    var canvas = document.createElement("canvas");
-    canvas.width = imgElem.clientWidth;
-    canvas.height = imgElem.clientHeight;
-    var ctx = canvas.getContext("2d");
-    ctx.drawImage(imgElem, 0, 0);
-    return ctx.getImageData(0,0,canvas.width,canvas.height);
-}
 
 
 var pttJPEG = (function namespace() {
 
+    function DEBUGMSG(x) {
+        if(console && console.log) {
+            console.log(x);
+        }
+    }
+
+    // public API
     /**
      * BitWriter class
      *
@@ -90,23 +81,16 @@ var pttJPEG = (function namespace() {
 
 
 
-        function flush_buffers() {
-            align8();
+        var flush_buffers = function() {
+            this.align8();
             if(bitcount>=8) {
                 emptybitbuffer();
                 output_buffer();
             }
         }
 
-        // public API
-        this.ByteWriter = function() {
-            // writes count bytes starting at start position from array
-            // array is Uint8Array()
-            this.write = function( array, start, count ){};
-        }
 
-        var bw = new ByteWriter(); 
-
+        var bw;
         this.putbits = function (val, bits) {
             emptybitbuffer_16();
             shovebits(val, bits);
@@ -243,9 +227,6 @@ var pttJPEG = (function namespace() {
      *
      */
     function PTTJPEG() {
-        this.imgdata = getPixelsFromImageElement(imgElem);
-        this.width = this.imgdata.width;
-        this.height = this.imgdata.height;
 
         /* private context variables */
         var fdtbl_Y = new Float64Array(64);
@@ -261,6 +242,7 @@ var pttJPEG = (function namespace() {
 
         var sf = 1; // int. the scale factor
 
+        var inputImage; 
 
 
         /** 
@@ -743,15 +725,6 @@ var pttJPEG = (function namespace() {
         }
 
 
-        function rgb2yuvpel(P,Y,U,V) {
-            int R = ((P)>>8)&0xFF;
-            int G= ((P)>> 16)&0xFF;
-            int B= ((P)>>24 )&0xFF;
-            (Y) =((( 0.29900)*R+( 0.58700)*G+( 0.11400)*B))-0x80;
-            (U) =(((-0.16874)*R+(-0.33126)*G+( 0.50000)*B));
-            (V) =((( 0.50000)*R+(-0.41869)*G+(-0.08131)*B)); 
-        }
-
         /**
          * xpos:int
          * ypos:int
@@ -766,10 +739,8 @@ var pttJPEG = (function namespace() {
          */
         function rgb2yuv_444( xpos, ypos)
         {
-            getpixels_if_t *gp = ctx->gp;
-
             // RGBA format in unpacked bytes
-            mcuimg = gp.getpixels( xpos, ypos, 8, 8);
+            mcuimg = inputImage.getpixels( xpos, ypos, 8, 8);
 
             //DEBUGMSG("getpixels() xpos:%d ypos:%d retw:%d reth:%d", xpos, ypos, mcuimg->w, mcuimg->h );
 
@@ -777,59 +748,183 @@ var pttJPEG = (function namespace() {
             var pel;
             var P=0;
             var x,y,off,off_1,R,G,B;
-            
 
             if( mcuimg.w==8 && mcuimg.h==8 ) {
+                off_1 = 0;
                 /* block is 8x8 */
                 for ( y=0; y<8; y++) {        
                     for (x=0; x<8; x++) {
                         off = mcuimg.offset + y*mcuimg.stride + x*4;
+
                         R = buf[off];
                         G = buf[off+1];
                         B = buf[off+2];
 
-                        P = mcuimg.buf[  ];
-                        P = *pel++;
-                        RGB2YUVPEL(P, *YDU++, *UDU++, *VDU++);
+                        YDU[off_1]   =((( 0.29900)*R+( 0.58700)*G+( 0.11400)*B))-0x80;
+                        UDU[off_1]   =(((-0.16874)*R+(-0.33126)*G+( 0.50000)*B));
+                        VDU[off_1++] =((( 0.50000)*R+(-0.41869)*G+(-0.08131)*B)); 
                     }
-                    row += mcuimg->stride;
-                    pel = (ptt_ui32 *)row;
                 }
             } else {
-                /* block is not 8x8 */
-                for (y=0; y<8; y++) {
-                    if( y<mcuimg->h ) {        
-                        for (x=0; x<8; x++) {
-                            P = x>=mcuimg->w ? P: *pel++; /* pad pixel on border conditions */
-                            RGB2YUVPEL(P, *YDU++, *UDU++, *VDU++);
+                /* we separate the borderline conditions to avoid having to branch out
+                 * on every mcu */
+                for( y=0; y<8; y++ ) {
+                    for( x=0; x<8; x++ ) {
+                        var xx=x, yy=y;
+                        if( x >= mcuimg.w ) {
+                            xx = mcuimg.w-1;
                         }
 
-                        row += mcuimg->stride;
-                        pel = (ptt_ui32 *)row;
-                    } else {
-                        YDU = ctx->YDU;
-                        UDU = ctx->UDU;
-                        VDU = ctx->VDU;
-                        for (x=0; x<8; x++) {
-                            off = (y<<3)+x;
-                            off_1 = ((y-1)<<3)+x;
-                            YDU[off]=YDU[off_1];
-                            UDU[off]=UDU[off_1];
-                            VDU[off]=VDU[off_1];
+                        if( y >= mcuimg.h ) {
+                            yy = mcuimg.h-1;
                         }
+
+
+                        off = mcuimg.offset + yy*mcuimg.stride + xx*4;
+
+                        R = buf[off];
+                        G = buf[off+1];
+                        B = buf[off+2];
+
+                        YDU[off_1]   =((( 0.29900)*R+( 0.58700)*G+( 0.11400)*B))-0x80;
+                        UDU[off_1]   =(((-0.16874)*R+(-0.33126)*G+( 0.50000)*B));
+                        VDU[off_1++] =((( 0.50000)*R+(-0.41869)*G+(-0.08131)*B)); 
                     }
                 }
             }
         }
 
+//static pttjpeg_img_t *getpixels( void *gpctx, int x, int y, int w, int h) {
+//    pttjpeg_ctx_t *ctx = (pttjpeg_ctx_t *)gpctx;
+//    pttjpeg_img_t *ret = &ctx->gpimg;
+//    pttjpeg_img_t *img = ctx->img;
+
+//  if( img->format == PTTJPEG_IMG_BGRX ) {
+//        ret->format = PTTJPEG_IMG_BGRX;
+//        ret->w = x+w > img->w ? img->w-x : w;
+//        ret->h = y+h > img->h ? img->h-y : h;
+//        ret->stride = img->stride;
+//        ret->buf = img->buf + img->stride*y + x*4;
+//    }
+//
+//    return ret;
+//}
         //--------------------------------------------------------------------
-
-        // initialization
-        init_quality_settings(50);
-
 
         // exported functions
         this.version = function() { return "0.3"; };
+
+        this.ByteWriter = function() {
+            // writes count bytes starting at start position from array
+            // array is Uint8Array()
+            this.write = function( array, start, count ){};
+        }
+
+        this.pttImage = function(imageData) {
+            var width = imageData.width;
+            var height = imageData.height;
+            var id = imageData;
+            var buf = imageData.data; // Uint8Array()
+            this.width = width;
+            this.height = height;
+
+            this.mcuPixels = function() {
+                this.buf=null;
+                this.offset = 0;
+                this.stride = 0;
+                this.xpos = 0;
+                this.ypos = 0;
+                this.w = 0;
+                this.h = 0;
+            }
+
+            /**
+             * returns an mcuPixels object with data for a
+             * specific mcu
+             */ 
+            this.getPixels = function(xpos, ypos, w, h) {
+                // only valid for RGBA data 
+                var ret = new mcuPixels();
+                ret.buf = buf;
+                ret.stride = width*4;
+                ret.offset = ypos*ret.stride + xpos*4;
+                ret.xpos = xpos;
+                ret.ypos = ypos;
+                ret.w = xpos + w > width ? width-xpos : w;
+                ret.h = ypos + h > height ? height-ypos : h;
+
+                return ret;
+
+            }
+        }
+
+        /**
+         * The encode function
+         * 
+         * quality:int 0-100
+         * img: pttJPEGImage object. The image object to encode
+         * bw: byteWriter object. The object that will be used to write the compressed data
+         *
+         * 
+         */
+        this.encode = function (quality, img, bw)
+        {
+            if(!img) 
+                DEBUGMSG("input image not provided. aborting encode");
+
+            if(!bw) 
+                DEBUGMSG("byte writer not provided. aborting encode");
+
+            DEBUGMSG("pttjpeg_encode  qual: " +  quality +" "+img.width+" x "+img.height );
+
+            init_quality_settings(quality);
+    
+
+            /* start the bitwriter */
+            bitwriter = new BitWriter();
+            bitwriter.setByteWriter(bw);
+
+            /* save copy of input image */
+            inputImage = img;
+
+            /* write headers out */
+            bitwriter.putshort( 0xFFD8); // SOI
+            writeAPP0();
+            writeDQT();
+            writeSOF0( img.w, img.h);
+            writeDHT();
+            writeSOS();
+
+            DEBUGMSG("wrote headers");
+
+            /* MCU(minimum coding units) are 8x8 blocks for now*/
+            var DCU=0, DCY=0, DCV=0;
+
+            var width=img.w;
+            var height=img.h;
+            var ypos,xpos;
+            var mcucount = 0;
+
+            ctx.abort = 0;
+
+            for (ypos=0; ypos<height; ypos+=8)
+            {
+                for (xpos=0; xpos<width; xpos+=8)
+                {
+                    rgb2yuv_444( xpos, ypos);
+                    DCY = processDU( YDU, fdtbl_Y, DCY, YDC_HT, YAC_HT);
+                    DCU = processDU( UDU, fdtbl_UV, DCU, UVDC_HT, UVAC_HT);
+                    DCV = processDU( VDU, fdtbl_UV, DCV, UVDC_HT, UVAC_HT);
+
+
+                    if( abort ) break;
+                }
+                if( abort ) break;
+            }
+
+            writeEOI();
+            DEBUGMSG("wrote EOI");
+        }
 
 
         /**
@@ -847,6 +942,29 @@ var pttJPEG = (function namespace() {
     return PTTJPEG; 
 }());
 
-var test = new pttJPEG();
-var v = test.version();
+var encoder = new pttJPEG();
+var v = encoder.version();
 console.log(v);
+
+
+/**
+ * Returns an ImageData object 
+ * @param imgElem
+ */
+function getPixelsFromImageElement(imgElem) {
+// imgElem must be on the same server otherwise a cross-origin error will be thrown "SECURITY_ERR: DOM Exception 18"
+    var canvas = document.createElement("canvas");
+    canvas.width = imgElem.clientWidth;
+    canvas.height = imgElem.clientHeight;
+    var ctx = canvas.getContext("2d");
+    ctx.drawImage(imgElem, 0, 0);
+    return ctx.getImageData(0,0,canvas.width,canvas.height);
+}
+// TESTING CODE
+var imgElem = document.getElementById("img");;
+var inImg = new encoder.pttImage( getPixelsFromImageElement(imgElem));
+var bw = new encoder.ByteWriter();
+
+encoder.encode(50, inImg, bw);
+
+
