@@ -6,6 +6,185 @@
 
 
 var pttJPEG = (function namespace() {
+    /**
+     * Base64 utils
+     */
+    var Base64 = {
+
+        // private property
+        _keyStr : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
+
+    // public method for encoding
+    // input is Uint8Array
+    encode : function (input) {
+        var output = "";
+        var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+        var i = 0;
+
+        while (i < input.length) {
+
+            chr1 = input[i++];
+            chr2 = i<input.length ? input[i++] : 64;
+            chr3 = i<input.length ? input[i++] : 64;
+
+            enc1 = chr1 >>> 2;
+            enc2 = ((chr1 & 3) << 4) | (chr2 >>> 4);
+            enc3 = ((chr2 & 15) << 2) | (chr3 >>> 6);
+            enc4 = chr3 & 63;
+
+            output = output +
+                this._keyStr.charAt(enc1) + this._keyStr.charAt(enc2) +
+                this._keyStr.charAt(enc3) + this._keyStr.charAt(enc4);
+
+        }
+
+        var mod = input.length % 3;
+        output +=  mod==1 ? '==' : mod==2 ? '=' : '';
+
+        return output;
+    }
+    };
+
+
+    /*! sprintf.js | Copyright (c) 2007-2013 Alexandru Marasteanu <hello at alexei dot ro> | 3 clause BSD license */
+    /* usage:
+     *
+     *  string sprintf(string format , [mixed arg1 [, mixed arg2 [ ,...]]]);
+     *
+     */
+    (function(ctx) {
+        var sprintf = function() {
+            if (!sprintf.cache.hasOwnProperty(arguments[0])) {
+                sprintf.cache[arguments[0]] = sprintf.parse(arguments[0]);
+            }
+            return sprintf.format.call(null, sprintf.cache[arguments[0]], arguments);
+        };
+
+        sprintf.format = function(parse_tree, argv) {
+            var cursor = 1, tree_length = parse_tree.length, node_type = '', arg, output = [], i, k, match, pad, pad_character, pad_length;
+            for (i = 0; i < tree_length; i++) {
+                node_type = get_type(parse_tree[i]);
+                if (node_type === 'string') {
+                    output.push(parse_tree[i]);
+                }
+                else if (node_type === 'array') {
+                    match = parse_tree[i]; // convenience purposes only
+                    if (match[2]) { // keyword argument
+                        arg = argv[cursor];
+                        for (k = 0; k < match[2].length; k++) {
+                            if (!arg.hasOwnProperty(match[2][k])) {
+                                throw(sprintf('[sprintf] property "%s" does not exist', match[2][k]));
+                            }
+                            arg = arg[match[2][k]];
+                        }
+                    }
+                    else if (match[1]) { // positional argument (explicit)
+                        arg = argv[match[1]];
+                    }
+                    else { // positional argument (implicit)
+                        arg = argv[cursor++];
+                    }
+
+                    if (/[^s]/.test(match[8]) && (get_type(arg) != 'number')) {
+                        throw(sprintf('[sprintf] expecting number but found %s', get_type(arg)));
+                    }
+                    switch (match[8]) {
+                        case 'b': arg = arg.toString(2); break;
+                        case 'c': arg = String.fromCharCode(arg); break;
+                        case 'd': arg = parseInt(arg, 10); break;
+                        case 'e': arg = match[7] ? arg.toExponential(match[7]) : arg.toExponential(); break;
+                        case 'f': arg = match[7] ? parseFloat(arg).toFixed(match[7]) : parseFloat(arg); break;
+                        case 'o': arg = arg.toString(8); break;
+                        case 's': arg = ((arg = String(arg)) && match[7] ? arg.substring(0, match[7]) : arg); break;
+                        case 'u': arg = arg >>> 0; break;
+                        case 'x': arg = arg.toString(16); break;
+                        case 'X': arg = arg.toString(16).toUpperCase(); break;
+                    }
+                    arg = (/[def]/.test(match[8]) && match[3] && arg >= 0 ? '+'+ arg : arg);
+                    pad_character = match[4] ? match[4] == '0' ? '0' : match[4].charAt(1) : ' ';
+                    pad_length = match[6] - String(arg).length;
+                    pad = match[6] ? str_repeat(pad_character, pad_length) : '';
+                    output.push(match[5] ? arg + pad : pad + arg);
+                }
+            }
+            return output.join('');
+        };
+
+        sprintf.cache = {};
+
+        sprintf.parse = function(fmt) {
+            var _fmt = fmt, match = [], parse_tree = [], arg_names = 0;
+            while (_fmt) {
+                if ((match = /^[^\x25]+/.exec(_fmt)) !== null) {
+                    parse_tree.push(match[0]);
+                }
+                else if ((match = /^\x25{2}/.exec(_fmt)) !== null) {
+                    parse_tree.push('%');
+                }
+                else if ((match = /^\x25(?:([1-9]\d*)\$|\(([^\)]+)\))?(\+)?(0|'[^$])?(-)?(\d+)?(?:\.(\d+))?([b-fosuxX])/.exec(_fmt)) !== null) {
+                    if (match[2]) {
+                        arg_names |= 1;
+                        var field_list = [], replacement_field = match[2], field_match = [];
+                        if ((field_match = /^([a-z_][a-z_\d]*)/i.exec(replacement_field)) !== null) {
+                            field_list.push(field_match[1]);
+                            while ((replacement_field = replacement_field.substring(field_match[0].length)) !== '') {
+                                if ((field_match = /^\.([a-z_][a-z_\d]*)/i.exec(replacement_field)) !== null) {
+                                    field_list.push(field_match[1]);
+                                }
+                                else if ((field_match = /^\[(\d+)\]/.exec(replacement_field)) !== null) {
+                                    field_list.push(field_match[1]);
+                                }
+                                else {
+                                    throw('[sprintf] huh?');
+                                }
+                            }
+                        }
+                        else {
+                            throw('[sprintf] huh?');
+                        }
+                        match[2] = field_list;
+                    }
+                    else {
+                        arg_names |= 2;
+                    }
+                    if (arg_names === 3) {
+                        throw('[sprintf] mixing positional and named placeholders is not (yet) supported');
+                    }
+                    parse_tree.push(match);
+                }
+                else {
+                    throw('[sprintf] huh?');
+                }
+                _fmt = _fmt.substring(match[0].length);
+            }
+            return parse_tree;
+        };
+
+        var vsprintf = function(fmt, argv, _argv) {
+            _argv = argv.slice(0);
+            _argv.splice(0, 0, fmt);
+            return sprintf.apply(null, _argv);
+        };
+
+        /**
+         * helpers
+         */
+        function get_type(variable) {
+            return Object.prototype.toString.call(variable).slice(8, -1).toLowerCase();
+        }
+
+        function str_repeat(input, multiplier) {
+            for (var output = []; multiplier > 0; output[--multiplier] = input) {/* do nothing */}
+            return output.join('');
+        }
+
+        /**
+         * export to either browser or node.js
+         */
+        ctx.sprintf = sprintf;
+        ctx.vsprintf = vsprintf;
+    })(typeof exports != "undefined" ? exports : window);
+    var sprintf = typeof exports != "undefined" ? exports.sprintf : window.sprintf;
 
     function DEBUGMSG(x) {
         if(console && console.log) {
@@ -23,7 +202,8 @@ var pttJPEG = (function namespace() {
      *
      */
     function BitWriter() {
-        var bufsize = 1024*1024;
+        var _this = this; 
+        var bufsize = 1024;
         var buf = new Uint8Array(bufsize);
         var bufptr = 0;
         var bitcount = 0;
@@ -48,9 +228,9 @@ var pttJPEG = (function namespace() {
         function emptybitbuffer(){
             do {  /* Check if we need to dump buffer*/
                 if( bufptr >= bufsize  ) {
-                    output_buffer(pbs);
+                    output_buffer();
                 }
-                var b = bitcache >> 24;
+                var b = (bitcache >> 24)&0xff;
 
                 if( b == 0xff ) { /*Add 0x00 stuffing*/
                     bitcache &= 0x00ffffff;
@@ -82,22 +262,33 @@ var pttJPEG = (function namespace() {
 
 
         var flush_buffers = function() {
-            this.align8();
+            align8();
             if(bitcount>=8) {
                 emptybitbuffer();
                 output_buffer();
             }
         }
 
+        var align8 = function () {
+            _this.putbits( 0xff, ((32 - bitcount)&0x7) );
+        }
 
+
+        /**
+         * Public API
+         */
         var bw;
+        this.getWrittenBytes = function () {
+            return byteswritten;
+        }
+
         this.putbits = function (val, bits) {
             emptybitbuffer_16();
             shovebits(val, bits);
         }
 
-        this.align8 = function () {
-            putbits( 0xff, ((32 - bitcount)&0x7) );
+        this.align = function() {
+            align8();
         }
 
         this.setByteWriter = function( bww ) {
@@ -106,7 +297,7 @@ var pttJPEG = (function namespace() {
 
         this.putshort = function(s) {
             flush_buffers();
-            buf[bufptr++]=s>>8;
+            buf[bufptr++]=((s)&0xffff)>>>8;
             buf[bufptr++]=s&0xff;
         }
 
@@ -335,6 +526,14 @@ var pttJPEG = (function namespace() {
             var pos_in_table = 0; //int
             var k,j;                //int
             var bs;     //BitString object
+
+            // initialize table
+            for( k=0; k<256; k++ ) {
+                bs = new BitString();
+                bs.val = 0;
+                bs.len = 0;
+                HT[k] = bs;
+            }
 
             for (k=1; k<=16; ++k)
             {
@@ -623,7 +822,7 @@ var pttJPEG = (function namespace() {
 
         function writeEOI()
         {
-            bitwriter.align8();
+            bitwriter.align();
             bitwriter.putshort(0xFFD9); //EOI
         }
 
@@ -647,7 +846,7 @@ var pttJPEG = (function namespace() {
         function processDU( CDU, fdtbl, DC, HTDC, HTAC )
         {
 
-            var DU_DCT = fDCTQuant(ctx, CDU, fdtbl);
+            var DU_DCT = fDCTQuant( CDU, fdtbl);
 
             var dc_diff; //int
             var last_dc; // double
@@ -660,7 +859,7 @@ var pttJPEG = (function namespace() {
             //DC CODING
 
             // DC Size
-            var dc_size = 0, diffabs = ABS(dc_diff);    
+            var dc_size = 0, diffabs = abs(dc_diff);    
             dc_size = log2(diffabs, dc_size);
 
             bitwriter.putbits(HTDC[dc_size].val, HTDC[dc_size].len );
@@ -698,7 +897,7 @@ var pttJPEG = (function namespace() {
                 }
                 // AC Size
                 var acsize = 0;
-                var acabs = ABS(accoeff);
+                var acabs = abs(accoeff);
                 acsize = log2(acabs, acsize);
 
                 // Write value
@@ -740,17 +939,16 @@ var pttJPEG = (function namespace() {
         function rgb2yuv_444( xpos, ypos)
         {
             // RGBA format in unpacked bytes
-            mcuimg = inputImage.getpixels( xpos, ypos, 8, 8);
+            var mcuimg = inputImage.getPixels( xpos, ypos, 8, 8);
 
-            //DEBUGMSG("getpixels() xpos:%d ypos:%d retw:%d reth:%d", xpos, ypos, mcuimg->w, mcuimg->h );
+            // DEBUGMSG(sprintf("getpixels() xpos:%d ypos:%d retw:%d reth:%d", xpos, ypos, mcuimg.w, mcuimg.h ));
 
             var buf = mcuimg.buf;
             var pel;
             var P=0;
-            var x,y,off,off_1,R,G,B;
+            var x,y,off,off_1=0,R,G,B;
 
             if( mcuimg.w==8 && mcuimg.h==8 ) {
-                off_1 = 0;
                 /* block is 8x8 */
                 for ( y=0; y<8; y++) {        
                     for (x=0; x<8; x++) {
@@ -815,9 +1013,33 @@ var pttJPEG = (function namespace() {
         this.version = function() { return "0.3"; };
 
         this.ByteWriter = function() {
+            var bufsize = 1024*1024*10;
+            var buf = new Uint8Array(bufsize);
+            var bufptr = 0;
             // writes count bytes starting at start position from array
             // array is Uint8Array()
-            this.write = function( array, start, count ){};
+            this.write = function( array, start, count ){
+                for( var i=0; i<count && bufptr+i<bufsize; i++ ) {
+                    buf[bufptr+i] = array[start+i];
+                }
+                bufptr += i;
+            };
+
+            /**
+             * returns a base64 string with the data in the buffer
+             */
+            this.getBase64Data = function() {
+                return Base64.encode( buf.subarray(0, bufptr) );
+            }
+
+            this.getImgUrl = function () {
+                return "data:image/jpeg;base64,"+this.getBase64Data();
+            }
+
+            this.getWrittenBytes = function() {
+                return bufptr;
+            }
+            
         }
 
         this.pttImage = function(imageData) {
@@ -844,7 +1066,7 @@ var pttJPEG = (function namespace() {
              */ 
             this.getPixels = function(xpos, ypos, w, h) {
                 // only valid for RGBA data 
-                var ret = new mcuPixels();
+                var ret = new this.mcuPixels();
                 ret.buf = buf;
                 ret.stride = width*4;
                 ret.offset = ypos*ret.stride + xpos*4;
@@ -875,7 +1097,8 @@ var pttJPEG = (function namespace() {
             if(!bw) 
                 DEBUGMSG("byte writer not provided. aborting encode");
 
-            DEBUGMSG("pttjpeg_encode  qual: " +  quality +" "+img.width+" x "+img.height );
+            DEBUGMSG(sprintf("pttjpeg_encode  qual:%d,  %dx%d", quality ,img.width,img.height ));
+            var start = new Date().getTime();
 
             init_quality_settings(quality);
     
@@ -891,7 +1114,7 @@ var pttJPEG = (function namespace() {
             bitwriter.putshort( 0xFFD8); // SOI
             writeAPP0();
             writeDQT();
-            writeSOF0( img.w, img.h);
+            writeSOF0( img.width, img.height );
             writeDHT();
             writeSOS();
 
@@ -900,12 +1123,11 @@ var pttJPEG = (function namespace() {
             /* MCU(minimum coding units) are 8x8 blocks for now*/
             var DCU=0, DCY=0, DCV=0;
 
-            var width=img.w;
-            var height=img.h;
+            var width=img.width;
+            var height=img.height;
             var ypos,xpos;
             var mcucount = 0;
 
-            ctx.abort = 0;
 
             for (ypos=0; ypos<height; ypos+=8)
             {
@@ -917,13 +1139,13 @@ var pttJPEG = (function namespace() {
                     DCV = processDU( VDU, fdtbl_UV, DCV, UVDC_HT, UVAC_HT);
 
 
-                    if( abort ) break;
                 }
-                if( abort ) break;
             }
 
             writeEOI();
-            DEBUGMSG("wrote EOI");
+            DEBUGMSG(sprintf("wrote EOI. %d bytes written", bitwriter.getWrittenBytes() ));
+            var stop = new Date().getTime();
+            DEBUGMSG(sprintf("%d ms", stop-start));
         }
 
 
@@ -942,29 +1164,38 @@ var pttJPEG = (function namespace() {
     return PTTJPEG; 
 }());
 
-var encoder = new pttJPEG();
-var v = encoder.version();
-console.log(v);
-
-
-/**
- * Returns an ImageData object 
- * @param imgElem
- */
-function getPixelsFromImageElement(imgElem) {
-// imgElem must be on the same server otherwise a cross-origin error will be thrown "SECURITY_ERR: DOM Exception 18"
-    var canvas = document.createElement("canvas");
-    canvas.width = imgElem.clientWidth;
-    canvas.height = imgElem.clientHeight;
-    var ctx = canvas.getContext("2d");
-    ctx.drawImage(imgElem, 0, 0);
-    return ctx.getImageData(0,0,canvas.width,canvas.height);
+if( typeof exports != 'undefined' ) {
+    exports.pttJPEG = pttJPEG;
 }
-// TESTING CODE
-var imgElem = document.getElementById("img");;
-var inImg = new encoder.pttImage( getPixelsFromImageElement(imgElem));
-var bw = new encoder.ByteWriter();
-
-encoder.encode(50, inImg, bw);
 
 
+
+if( typeof window != 'undefined' ) {
+    /**
+     * Returns an ImageData object 
+     * @param imgElem
+     */
+    function getPixelsFromImageElement(imgElem) {
+        // imgElem must be on the same server otherwise a cross-origin error will be thrown "SECURITY_ERR: DOM Exception 18"
+        var canvas = document.createElement("canvas");
+        canvas.width = imgElem.clientWidth;
+        canvas.height = imgElem.clientHeight;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(imgElem, 0, 0);
+        return ctx.getImageData(0,0,canvas.width,canvas.height);
+    }
+    var encoder = new pttJPEG();
+    var v = encoder.version();
+    console.log(v);
+
+    var imgElem = document.getElementById("img");;
+    var inImg = new encoder.pttImage( getPixelsFromImageElement(imgElem));
+    var bw = new encoder.ByteWriter();
+
+    encoder.encode(10, inImg, bw);
+    var url = bw.getImgUrl();
+
+    var dstImgElem = document.getElementById("dstimg");
+    dstImgElem.setAttribute("src", url);
+    console.log(url);
+}
