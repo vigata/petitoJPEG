@@ -24,22 +24,33 @@ var pttJPEG = (function namespace() {
         while (i < input.length) {
 
             chr1 = input[i++];
-            chr2 = i<input.length ? input[i++] : 64;
-            chr3 = i<input.length ? input[i++] : 64;
+            chr2 = i<input.length ? input[i++] : 0;
+            chr3 = i<input.length ? input[i++] : 0;
 
             enc1 = chr1 >>> 2;
             enc2 = ((chr1 & 3) << 4) | (chr2 >>> 4);
             enc3 = ((chr2 & 15) << 2) | (chr3 >>> 6);
             enc4 = chr3 & 63;
 
+            if(i>= input.length) {
+                var mod = input.length%3;
+
+
+                if(mod==2) {
+                    enc4 = 64;
+                }
+
+                if(mod==1) {
+                    enc3 = enc4 = 64;
+                }
+            }
+
+
             output = output +
                 this._keyStr.charAt(enc1) + this._keyStr.charAt(enc2) +
                 this._keyStr.charAt(enc3) + this._keyStr.charAt(enc4);
 
         }
-
-        var mod = input.length % 3;
-        output +=  mod==1 ? '==' : mod==2 ? '=' : '';
 
         return output;
     }
@@ -280,6 +291,10 @@ var pttJPEG = (function namespace() {
         var bw;
         this.getWrittenBytes = function () {
             return byteswritten;
+        }
+
+        this.end = function() {
+            output_buffer();
         }
 
         this.putbits = function (val, bits) {
@@ -824,6 +839,7 @@ var pttJPEG = (function namespace() {
         {
             bitwriter.align();
             bitwriter.putshort(0xFFD9); //EOI
+            bitwriter.end();
         }
 
         //--------------------------------------------------------------------
@@ -1171,12 +1187,15 @@ if( typeof exports != 'undefined' ) {
 
 
 if( typeof window != 'undefined' ) {
+    window.onload = function() {
     /**
      * Returns an ImageData object 
      * @param imgElem
      */
     function getPixelsFromImageElement(imgElem) {
         // imgElem must be on the same server otherwise a cross-origin error will be thrown "SECURITY_ERR: DOM Exception 18"
+        // you can lauch chrome with --allow-file-access-from-files to avoid this on local file access. Http access should work fine
+        // if pulling images from the same domain
         var canvas = document.createElement("canvas");
         canvas.width = imgElem.clientWidth;
         canvas.height = imgElem.clientHeight;
@@ -1192,10 +1211,10 @@ if( typeof window != 'undefined' ) {
     var inImg = new encoder.pttImage( getPixelsFromImageElement(imgElem));
     var bw = new encoder.ByteWriter();
 
-    encoder.encode(10, inImg, bw);
+    encoder.encode(98, inImg, bw);
     var url = bw.getImgUrl();
 
     var dstImgElem = document.getElementById("dstimg");
     dstImgElem.setAttribute("src", url);
-    console.log(url);
+    }
 }
