@@ -1,13 +1,13 @@
 petitóJPEG JS 
 ==========
 
-### A high performance JPEG Encoder written in JavaScript ####
+## A high performance JPEG Encoder written in JavaScript ##
 
 petitóJPEG is a high performance JPEG encoder written in JavaScript. It is not a port from C code and it's a direct write into JavaScript. 
 
 The encoder makes pervasive use of TypedArrays so you'll need an interpreter that supports this.
 
-### Usage ###
+## Usage ##
 The encoder accepts images in RGBA format which happens to be the format that of the ImageData object used in canvas. 
 
 1) Provide the byte writer object. This is where the compressed data will be written to. There is a default ByteWriter object you can use that writes the result into a memory buffer you can later retrieve.
@@ -44,5 +44,8 @@ encoder.encode( quality, inImage, bw );
 // this encodes the picture and keeps calling your bytewriter when there is data available. On exit
 // all data has been written out to the bytewriter
 ```
+## Performance ##
+Contemporary javascript engines have got very good at dealing with data in typed arrays. PetitóJPEG makes exhaustive use of these. In my testing I've seen encode times of ~1000ms of 64 megapixel images on my Haswell intel core i5 using Google Chrome.
 
-
+### Limitations ###
+* images are encoded to 4:4:4 chroma sampling only. 4:2:2 and 4:2:0 should be added but it would require chroma plane downsampling making things slower
