@@ -44,8 +44,13 @@ encoder.encode( quality, inImage, bw );
 // this encodes the picture and keeps calling your bytewriter when there is data available. On exit
 // all data has been written out to the bytewriter
 ```
+
+There are a couple of samples provided. 
+*`sample_html.html` Loads an image from the DOM into a ImageData and encodes it with petitóJPEG. The output is then displayed side by side in the same html as the original.
+*`sample_node.js` It's a node.js script that loads a raw image in RGB format from the file system, encodes it with petitóJPEG and outputs the raw jpeg bitstream into a file.
+
 ## Performance ##
-Contemporary javascript engines have got very good at dealing with data in typed arrays. PetitóJPEG makes exhaustive use of these. In my testing I've seen encode times of ~1000ms of 64 megapixel images on my Haswell intel core i5 using Google Chrome.
+Contemporary javascript engines have got very good at dealing with data in typed arrays. petitóJPEG makes exhaustive use of these. In my testing I've seen encode times of ~1000ms of 64 megapixel images on my Haswell intel core i5 using Google Chrome.
 
 ### Limitations ###
 * images are encoded to 4:4:4 chroma sampling only. 4:2:2 and 4:2:0 should be added but it would require chroma plane downsampling making things slower
