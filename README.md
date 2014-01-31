@@ -18,7 +18,7 @@ var bw = new encoder.ByteWriter();
 
 // or roll your own
 var myByteWriter = function() {
-    // write get's called everytime there is data available from the encoder
+    // write gets called every time there is data available from the encoder
     // array is a Uint8Array. The data to be written starts at the 'start' position
     // and there are 'count' bytes to write
     this.write = function( array, start, count ) {
@@ -36,7 +36,7 @@ var inImage = new encoder.pttImage( myImageDataObject );
 ```
 3) Fire up the encoder
 ```javascript
-var quality = 50;
+var quality = 50; //a number between 1-99, 1: best compression-worst quality, 99: least compression-best quality
 
 encoder.encode( quality, inImage, bw );
 // this encodes the picture and keeps calling your bytewriter when there is data available. On exit
@@ -48,7 +48,7 @@ There are a couple of samples provided.
 * `sample_node.js` It's a node.js script that loads a raw image in RGB format from the file system, encodes it with petitóJPEG and outputs the raw jpeg bitstream into a file.
 
 ## Performance ##
-Contemporary javascript engines have got very good at dealing with data in typed arrays. petitóJPEG makes exhaustive use of these. In my testing I've seen encode times of ~1000ms of 64 megapixel images on my Haswell intel core i5 using Google Chrome.
+Contemporary javascript engines have gotten very good at dealing with data in typed arrays. petitóJPEG makes exhaustive use of these. In my testing I've seen encode times of ~1000ms of 64 megapixel images on my Haswell intel core i5 using Google Chrome.
 
 ### Limitations ###
 * images are encoded to 4:4:4 chroma sampling only. 4:2:2 and 4:2:0 should be added but it would require chroma plane downsampling making things slower
