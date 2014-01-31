@@ -1,4 +1,4 @@
-petitóJPEG JS 
+petitóJPEG 
 ==========
 
 ## A high performance JPEG Encoder written in JavaScript ##
