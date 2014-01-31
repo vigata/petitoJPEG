@@ -2,12 +2,45 @@
 <html>
 <head>
 <meta charset="US-ASCII">
-<title>petitóJPEG test</title>
+<title>petit&oacute;JPEG test</title>
 
 </head>
 <body>
 <img id="img" src="img/sample.png" />
 <img id="dstimg" src="img/sample.png" />
 <script src="pttjpeg.js" type="text/javascript" charset="utf-8"></script>
+
+<script> 
+    window.onload = function() {
+    /**
+     * Returns an ImageData object 
+     * @param imgElem
+     */
+    function getPixelsFromImageElement(imgElem) {
+        // imgElem must be on the same server otherwise a cross-origin error will be thrown "SECURITY_ERR: DOM Exception 18"
+        // you can lauch chrome with --allow-file-access-from-files to avoid this on local file access. Http access should work fine
+        // if pulling images from the same domain
+        var canvas = document.createElement("canvas");
+        canvas.width = imgElem.clientWidth;
+        canvas.height = imgElem.clientHeight;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(imgElem, 0, 0);
+        return ctx.getImageData(0,0,canvas.width,canvas.height);
+    }
+    var encoder = new pttJPEG();
+    var v = encoder.version();
+    console.log(v);
+
+    var imgElem = document.getElementById("img");;
+    var inImg = new encoder.pttImage( getPixelsFromImageElement(imgElem));
+    var bw = new encoder.ByteWriter();
+
+    encoder.encode(80, inImg, bw);
+    var url = bw.getImgUrl();
+
+    var dstImgElem = document.getElementById("dstimg");
+    dstImgElem.setAttribute("src", url);
+    }
+</script>
 </body>
 </html>

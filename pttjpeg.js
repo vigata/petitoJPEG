@@ -1,61 +1,11 @@
 /**
  * petitóJPEG
  */
-
-
-
-
 var pttJPEG = (function namespace() {
-    /**
-     * Base64 utils
-     */
-    var Base64 = {
 
-        // private property
-        _keyStr : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
-
-    // public method for encoding
-    // input is Uint8Array
-    encode : function (input) {
-        var output = "";
-        var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
-        var i = 0;
-
-        while (i < input.length) {
-
-            chr1 = input[i++];
-            chr2 = i<input.length ? input[i++] : 0;
-            chr3 = i<input.length ? input[i++] : 0;
-
-            enc1 = chr1 >>> 2;
-            enc2 = ((chr1 & 3) << 4) | (chr2 >>> 4);
-            enc3 = ((chr2 & 15) << 2) | (chr3 >>> 6);
-            enc4 = chr3 & 63;
-
-            if(i>= input.length) {
-                var mod = input.length%3;
-
-
-                if(mod==2) {
-                    enc4 = 64;
-                }
-
-                if(mod==1) {
-                    enc3 = enc4 = 64;
-                }
-            }
-
-
-            output = output +
-                this._keyStr.charAt(enc1) + this._keyStr.charAt(enc2) +
-                this._keyStr.charAt(enc3) + this._keyStr.charAt(enc4);
-
-        }
-
-        return output;
-    }
-    };
-
+    //-------------------------------------------------------------------------------------------
+    // Debugging support
+    //-------------------------------------------------------------------------------------------
 
     /*! sprintf.js | Copyright (c) 2007-2013 Alexandru Marasteanu <hello at alexei dot ro> | 3 clause BSD license */
     /* usage:
@@ -195,15 +145,18 @@ var pttJPEG = (function namespace() {
         ctx.sprintf = sprintf;
         ctx.vsprintf = vsprintf;
     })(typeof exports != "undefined" ? exports : window);
-    var sprintf = typeof exports != "undefined" ? exports.sprintf : window.sprintf;
+    var sprintf = typeof exports != "undefined" ? exports.sprintf : window.sprintf; 
 
     function DEBUGMSG(x) {
-        if(console && console.log) {
+        if( console && console.log) {
             console.log(x);
         }
     }
 
-    // public API
+    //-------------------------------------------------------------------------------------------
+    // petitoJPEG routines 
+    //-------------------------------------------------------------------------------------------
+
     /**
      * BitWriter class
      *
@@ -322,7 +275,9 @@ var pttJPEG = (function namespace() {
         };
     }
 
-
+    //-------------------------------------------------------------------------------------------
+    // encoding tables 
+    //-------------------------------------------------------------------------------------------
     var std_dc_luminance_nrcodes = new Uint32Array([0,0,1,5,1,1,1,1,1,1,0,0,0,0,0,0,0]);
     var std_dc_luminance_values = new Uint32Array([0,1,2,3,4,5,6,7,8,9,10,11]);
     var std_ac_luminance_nrcodes = new Uint32Array([0,0,2,1,3,3,2,4,3,5,5,4,4,0,0,1,0x7d]);
@@ -428,10 +383,9 @@ var pttJPEG = (function namespace() {
             99, 99, 99, 99, 99, 99, 99, 99
             ]);
 
-    /**
-     *  Defining the class here
-     *
-     */
+    //-------------------------------------------------------------------------------------------
+    // PTTJPEG object 
+    //-------------------------------------------------------------------------------------------
     function PTTJPEG() {
 
         /* private context variables */
@@ -479,7 +433,7 @@ var pttJPEG = (function namespace() {
             if (quality > 100)
                 quality = 100;
 
-            sf = quality < 50 ? ~~(5000 / quality) : ~~(200 - (quality<<1));
+            sf = quality < 50 ? (5000 / quality)|0 : (200 - (quality<<1))|0;
 
             /* init quantization tables */
             init_quant_tables(sf);
@@ -496,7 +450,7 @@ var pttJPEG = (function namespace() {
 
             for (i = 0; i < I64; ++i)
             {
-                var t = ~~((YQT[i]*sff+50)*0.01);
+                var t = ((YQT[i]*sff+50)*0.01)|0;
                 if (t < 1) {
                     t = 1;
                 } else if (t > 255) {
@@ -507,7 +461,7 @@ var pttJPEG = (function namespace() {
 
             for (i = 0; i < I64; i++)
             {
-                var u = ~~((UVQT[i]*sff+50)*0.01);
+                var u = ((UVQT[i]*sff+50)*0.01)|0;
                 if (u < 1) {
                     u = 1;
                 } else if (u > 255) {
@@ -713,7 +667,7 @@ var pttJPEG = (function namespace() {
             {
                 // Apply the quantization and scaling factor & Round to nearest (int)eger
                 fDCTQuant = data[i]*fdtbl[i];
-                outputfDCTQuant[i] = (fDCTQuant > 0.0) ? ~~(fDCTQuant + 0.5) : ~~(fDCTQuant - 0.5);
+                outputfDCTQuant[i] = (fDCTQuant > 0.0) ? (fDCTQuant + 0.5)|0 : (fDCTQuant - 0.5)|0;
             }
             return outputfDCTQuant;
         }
@@ -869,7 +823,7 @@ var pttJPEG = (function namespace() {
 
             // output
             // DC Bits
-            dc_diff = DU_DCT[0] - ~~DC;
+            dc_diff = DU_DCT[0] - DC|0;
             last_dc = DU_DCT[0];
             ///////////////////////
             //DC CODING
@@ -1008,30 +962,60 @@ var pttJPEG = (function namespace() {
             }
         }
 
-//static pttjpeg_img_t *getpixels( void *gpctx, int x, int y, int w, int h) {
-//    pttjpeg_ctx_t *ctx = (pttjpeg_ctx_t *)gpctx;
-//    pttjpeg_img_t *ret = &ctx->gpimg;
-//    pttjpeg_img_t *img = ctx->img;
-
-//  if( img->format == PTTJPEG_IMG_BGRX ) {
-//        ret->format = PTTJPEG_IMG_BGRX;
-//        ret->w = x+w > img->w ? img->w-x : w;
-//        ret->h = y+h > img->h ? img->h-y : h;
-//        ret->stride = img->stride;
-//        ret->buf = img->buf + img->stride*y + x*4;
-//    }
-//
-//    return ret;
-//}
         //--------------------------------------------------------------------
-
         // exported functions
-        this.version = function() { return "0.3"; };
+        this.version = function() { return "petitóJPEG 0.3"; };
 
         this.ByteWriter = function() {
             var bufsize = 1024*1024*10;
             var buf = new Uint8Array(bufsize);
             var bufptr = 0;
+
+            /**
+             * Base64 encoding.
+             * input:Uint8Array 
+             * output:String
+             */
+            var base64EncodeFromUint8Array = function(input) {
+                var _keyStr =  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+
+                var output = "";
+                var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+                var i = 0;
+
+                while (i < input.length) {
+
+                    chr1 = input[i++];
+                    chr2 = i<input.length ? input[i++] : 0;
+                    chr3 = i<input.length ? input[i++] : 0;
+
+                    enc1 = chr1 >>> 2;
+                    enc2 = ((chr1 & 3) << 4) | (chr2 >>> 4);
+                    enc3 = ((chr2 & 15) << 2) | (chr3 >>> 6);
+                    enc4 = chr3 & 63;
+
+                    if(i>= input.length) {
+                        var mod = input.length%3;
+
+
+                        if(mod==2) {
+                            enc4 = 64;
+                        }
+
+                        if(mod==1) {
+                            enc3 = enc4 = 64;
+                        }
+                    }
+
+
+                    output = output +
+                        _keyStr.charAt(enc1) + _keyStr.charAt(enc2) +
+                        _keyStr.charAt(enc3) + _keyStr.charAt(enc4);
+
+                }
+
+                return output;
+            };
             // writes count bytes starting at start position from array
             // array is Uint8Array()
             this.write = function( array, start, count ){
@@ -1045,7 +1029,7 @@ var pttJPEG = (function namespace() {
              * returns a base64 string with the data in the buffer
              */
             this.getBase64Data = function() {
-                return Base64.encode( buf.subarray(0, bufptr) );
+                return base64EncodeFromUint8Array( buf.subarray(0, bufptr) );
             }
 
             this.getImgUrl = function () {
@@ -1182,39 +1166,4 @@ var pttJPEG = (function namespace() {
 
 if( typeof exports != 'undefined' ) {
     exports.pttJPEG = pttJPEG;
-}
-
-
-
-if( typeof window != 'undefined' ) {
-    window.onload = function() {
-    /**
-     * Returns an ImageData object 
-     * @param imgElem
-     */
-    function getPixelsFromImageElement(imgElem) {
-        // imgElem must be on the same server otherwise a cross-origin error will be thrown "SECURITY_ERR: DOM Exception 18"
-        // you can lauch chrome with --allow-file-access-from-files to avoid this on local file access. Http access should work fine
-        // if pulling images from the same domain
-        var canvas = document.createElement("canvas");
-        canvas.width = imgElem.clientWidth;
-        canvas.height = imgElem.clientHeight;
-        var ctx = canvas.getContext("2d");
-        ctx.drawImage(imgElem, 0, 0);
-        return ctx.getImageData(0,0,canvas.width,canvas.height);
-    }
-    var encoder = new pttJPEG();
-    var v = encoder.version();
-    console.log(v);
-
-    var imgElem = document.getElementById("img");;
-    var inImg = new encoder.pttImage( getPixelsFromImageElement(imgElem));
-    var bw = new encoder.ByteWriter();
-
-    encoder.encode(98, inImg, bw);
-    var url = bw.getImgUrl();
-
-    var dstImgElem = document.getElementById("dstimg");
-    dstImgElem.setAttribute("src", url);
-    }
 }
