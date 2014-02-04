@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>petit&oacute;JPEG photo resizer</title>
+  <link rel="stylesheet" href="support/jquery-ui.css">
+  <script src="support/jquery-1.9.1.js"></script>
+  <script src="support/jquery-ui.js"></script>
+  <!--<link rel="stylesheet" href="/resources/demos/style.css"> -->
+  <script>
+  $(function() {
+    $( "#slider" ).slider({
+      value:50,
+      min: 1,
+      max: 100,
+      step: 1,
+      slide: function( event, ui ) {
+        $( "#amount" ).text( ui.value );
+        encode(ui.value);
+      }
+    });
+    format_info( $('#slider').slider('value'), 0, 0 );
+  });
+  </script>
+  <style media="screen" type="text/css">
+    #amount {
+        font-weight; bold;
+        font-size: 4em;
+        font-family: Arial;
+    }
+  </style>
+</head>
+<body>
+    <div id="slider" style="width: 500px;"></div>
+    <div id="amount" style="font-weight: bold; font-size: 4em;"></div>
+    <div style="display: inline-block;">
+        <img id="img" src="../img/sample.png" />
+        <div>Original Image</div>
+    </div>
+    <div style="display: inline-block;">
+        <img id="dstimg" src="../img/sample.png" />
+        <div>petit&oacute;JPEG Compressed Image</div>
+    </div>
+    <script src="../pttjpeg.js" type="text/javascript" charset="utf-8"></script>
+
+    <script> 
+var format_info = function(quality, inbytes, outbytes) {
+    var str = quality + "% / " + outbytes + " bytes  " + ((inbytes==0) ? '' :  ' / '+ String((inbytes/outbytes).toFixed(1)) + ':1')  ;
+    $('#amount').text(str);
+}
+
+var encode = function(quality) {
+    /**
+     * Returns an ImageData object 
+     * @param imgElem
+     */
+    function getPixelsFromImageElement(imgElem) {
+        // imgElem must be on the same server otherwise a cross-origin error will be thrown "SECURITY_ERR: DOM Exception 18"
+        // you can lauch chrome with --allow-file-access-from-files to avoid this on local file access. Http access should work fine
+        // if pulling images from the same domain
+        var canvas = document.createElement("canvas");
+        canvas.width = imgElem.clientWidth;
+        canvas.height = imgElem.clientHeight;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(imgElem, 0, 0);
+        return ctx.getImageData(0,0,canvas.width,canvas.height);
+    }
+    var encoder = new pttJPEG();
+    var v = encoder.version();
+    console.log(v);
+
+    var imgElem = document.getElementById("img");;
+    var inImg = new encoder.pttImage( getPixelsFromImageElement(imgElem));
+    var bw = new encoder.ByteWriter();
+
+    encoder.encode(quality, inImg, bw);
+
+    format_info( $('#slider').slider('value'), inImg.width*inImg.height*3,  bw.getWrittenBytes() );
+    var url = bw.getImgUrl();
+
+    var dstImgElem = document.getElementById("dstimg");
+    dstImgElem.setAttribute("src", url);
+}
+
+window.onload = function() { encode(50); };
+  </script>
+</body>
+</html>
