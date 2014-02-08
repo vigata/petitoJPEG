@@ -33,6 +33,7 @@
 <body>
     <div id="slider" style="width: 500px;"></div>
     <div id="amount" style="font-weight: bold; font-size: 4em;"></div>
+    <input type="file" onchange='readfile(this.files[0])'></input>
     <div style="display: inline-block;">
         <img id="img" src="../img/sample.png" />
         <div>Original Image</div>
@@ -44,6 +45,20 @@
     <script src="../pttjpeg.js" type="text/javascript" charset="utf-8"></script>
 
     <script> 
+function readfile(f) {
+    var reader = new FileReader(); 
+    reader.readAsDataURL(f); 
+    reader.onload = function() {
+        var url = reader.result;
+        var out = document.getElementById("img");
+        out.setAttribute('src', url);
+    }
+    
+    reader.onerror = function(e) { // If anything goes wrong
+        console.log("Error", e); // Just log it 
+    };
+}
+
 var format_info = function(quality, inbytes, outbytes) {
     var str = quality + "% / " + outbytes + " bytes  " + ((inbytes==0) ? '' :  ' / '+ String((inbytes/outbytes).toFixed(1)) + ':1')  ;
     $('#amount').text(str);
