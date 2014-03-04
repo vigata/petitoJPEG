@@ -3,25 +3,10 @@
 <head>
   <meta charset="utf-8">
   <title>petit&oacute;JPEG photo resizer</title>
-  <link rel="stylesheet" href="support/jquery-ui.css">
-  <script src="support/jquery-1.9.1.js"></script>
-  <script src="support/jquery-ui.js"></script>
-  <!--<link rel="stylesheet" href="/resources/demos/style.css"> -->
-  <script>
-  $(function() {
-    $( "#slider" ).slider({
-      value:50,
-      min: 1,
-      max: 100,
-      step: 1,
-      slide: function( event, ui ) {
-        $( "#amount" ).text( ui.value );
-        encode(ui.value);
-      }
-    });
-    format_info( $('#slider').slider('value'), 0, 0 );
-  });
-  </script>
+  <link rel="stylesheet" href="support/jquery-ui.css"/>
+  <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.css" />
+  <script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+  <script src="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.js"></script>
   <style media="screen" type="text/css">
     #amount {
         font-weight; bold;
@@ -31,27 +16,53 @@
   </style>
 </head>
 <body>
-    <div id="slider" style="width: 500px;"></div>
-    <div id="amount" style="font-weight: bold; font-size: 4em;"></div>
     <input type="file" onchange='readfile(this.files[0])'></input>
+    <label for="slider">Use slider to recompress image in real time</label>
+    <input type="range" id="slider" style="" min="1" max="100" value="50"></input>
+    <div id="amount" style="font-weight: bold; font-size: 4em;"></div>
     <div style="display: inline-block;">
         <img id="img" src="../img/sample.png" />
-        <div>Original Image</div>
+        <div id="origcaption">Original Image</div>
     </div>
     <div style="display: inline-block;">
         <img id="dstimg" src="../img/sample.png" />
-        <div>petit&oacute;JPEG Compressed Image</div>
+        <div id="compcaption">petit&oacute;JPEG Compressed Image</div>
     </div>
     <script src="../pttjpeg.js" type="text/javascript" charset="utf-8"></script>
 
     <script> 
+/**
+ * Returns an ImageData object 
+ * @param imgElem
+ */
+function getPixelsFromImageElement(imgElem) {
+    // imgElem must be on the same server otherwise a cross-origin error will be thrown "SECURITY_ERR: DOM Exception 18"
+    // you can lauch chrome with --allow-file-access-from-files to avoid this on local file access. Http access should work fine
+    // if pulling images from the same domain
+    var canvas = document.createElement("canvas");
+    canvas.width = imgElem.clientWidth;
+    canvas.height = imgElem.clientHeight;
+    var ctx = canvas.getContext("2d");
+    ctx.drawImage(imgElem, 0, 0);
+    return ctx.getImageData(0,0,canvas.width,canvas.height);
+}
+
+
+// this variables contains a copy of the ImageData buffer for the original image
+var origImageData;
+
 function readfile(f) {
     var reader = new FileReader(); 
     reader.readAsDataURL(f); 
     reader.onload = function() {
         var url = reader.result;
         var out = document.getElementById("img");
+        out.style.width = "";
         out.setAttribute('src', url);
+        out.onload = function() {
+            origImageData = getPixelsFromImageElement(out);
+            do_encode(50);
+        }
     }
     
     reader.onerror = function(e) { // If anything goes wrong
@@ -59,45 +70,48 @@ function readfile(f) {
     };
 }
 
-var format_info = function(quality, inbytes, outbytes) {
-    var str = quality + "% / " + outbytes + " bytes  " + ((inbytes==0) ? '' :  ' / '+ String((inbytes/outbytes).toFixed(1)) + ':1')  ;
+var format_info = function(quality, w, h, inbytes, outbytes) {
+    var compr = "" +outbytes + " bytes  " + ((inbytes==0) ? '' :  ' / '+ String((inbytes/outbytes).toFixed(1)) + ':1')  ;
+    var dim = "("+w+"x"+h+")";
+    var str = quality + "% / " + compr;    
     $('#amount').text(str);
+    $('#origcaption').text("Original Image "+dim+" / "+ inbytes + " bytes");
+    $('#compcaption').text("petitóJPEG Compressed Image "+dim+" / " + compr);
 }
 
-var encode = function(quality) {
-    /**
-     * Returns an ImageData object 
-     * @param imgElem
-     */
-    function getPixelsFromImageElement(imgElem) {
-        // imgElem must be on the same server otherwise a cross-origin error will be thrown "SECURITY_ERR: DOM Exception 18"
-        // you can lauch chrome with --allow-file-access-from-files to avoid this on local file access. Http access should work fine
-        // if pulling images from the same domain
-        var canvas = document.createElement("canvas");
-        canvas.width = imgElem.clientWidth;
-        canvas.height = imgElem.clientHeight;
-        var ctx = canvas.getContext("2d");
-        ctx.drawImage(imgElem, 0, 0);
-        return ctx.getImageData(0,0,canvas.width,canvas.height);
-    }
+var do_encode = function(quality) {
+    var displayWidth = "600px";
     var encoder = new pttJPEG();
     var v = encoder.version();
     console.log(v);
 
-    var imgElem = document.getElementById("img");;
-    var inImg = new encoder.pttImage( getPixelsFromImageElement(imgElem));
+    var inImg = new encoder.pttImage( origImageData );
     var bw = new encoder.ByteWriter();
 
     encoder.encode(quality, inImg, bw);
 
-    format_info( $('#slider').slider('value'), inImg.width*inImg.height*3,  bw.getWrittenBytes() );
+    format_info( $('#slider').val(), inImg.width, inImg.height, inImg.width*inImg.height*3,  bw.getWrittenBytes() );
     var url = bw.getImgUrl();
 
     var dstImgElem = document.getElementById("dstimg");
     dstImgElem.setAttribute("src", url);
+
+    var imgElem = document.getElementById("img");;
+    imgElem.style.width = displayWidth;
+    dstImgElem.style.width = displayWidth;
 }
 
-window.onload = function() { encode(50); };
+window.onload = function() { 
+    // this variables contains a copy of the ImageData buffer for the original image
+    origImageData = getPixelsFromImageElement( document.getElementById('img'));
+    do_encode(50); 
+    $("#slider").change( function() {
+        var val = $('#slider').val();
+        console.log(val);
+        do_encode(val|0);
+        });
+
+};
   </script>
 </body>
 </html>
