@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>petitóJPEG ® by concalma</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>petitóJPEG ®</h1>
+        <h2>by Alberto Vigata | A high performance JPEG Encoder written in JavaScript</h2>
+        <a href="https://github.com/concalma/petitoJPEG" class="button"><small>View project on</small>GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
+<a name="petit%C3%B3jpeg-" class="anchor" href="#petit%C3%B3jpeg-"><span class="octicon octicon-link"></span></a>petitóJPEG </h1>
+
+<h2>
+<a name="a-high-performance-jpeg-encoder-written-in-javascript" class="anchor" href="#a-high-performance-jpeg-encoder-written-in-javascript"><span class="octicon octicon-link"></span></a>A high performance JPEG Encoder written in JavaScript</h2>
+
+<p>petitóJPEG is a high performance JPEG encoder written in JavaScript. It can encode huge images (~64 Megapixels) in about 1000ms with contemporary CPUs. It is not a port from C code and it's a direct write into JS. The encoder makes pervasive use of TypedArrays so you'll need an interpreter that supports this.</p>
+
+<h2>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>The encoder accepts images in RGBA format which happens to be the format that of the ImageData object used in canvas. </p>
+
+<p>1) Provide the byte writer object. This is where the compressed data will be written to. There is a default ByteWriter object you can use that writes the result into a memory buffer you can later retrieve.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">encoder</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">pttJPEG</span><span class="p">();</span>
+
+<span class="c1">// use default byte writer</span>
+<span class="kd">var</span> <span class="nx">bw</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">encoder</span><span class="p">.</span><span class="nx">ByteWriter</span><span class="p">();</span>
+
+<span class="c1">// or roll your own</span>
+<span class="kd">var</span> <span class="nx">myByteWriter</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// write gets called every time there is data available from the encoder</span>
+    <span class="c1">// array is a Uint8Array. The data to be written starts at the 'start' position</span>
+    <span class="c1">// and there are 'count' bytes to write</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">write</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span> <span class="nx">array</span><span class="p">,</span> <span class="nx">start</span><span class="p">,</span> <span class="nx">count</span> <span class="p">)</span> <span class="p">{</span>
+        <span class="p">...</span>
+    <span class="p">};</span>
+<span class="kd">var</span> <span class="nx">bw</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">myByteWriter</span><span class="p">();</span>
+</pre></div>
+
+<p>2) Wrap the image to be encoded in a pttImage object</p>
+
+<div class="highlight highlight-javascript"><pre><span class="c1">//pttImage constructor accepts an ImageData object as return by the </span>
+<span class="c1">// getImageData() of the canvas context so you can just:</span>
+
+<span class="kd">var</span> <span class="nx">inImage</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">encoder</span><span class="p">.</span><span class="nx">pttImage</span><span class="p">(</span> <span class="nx">myImageDataObject</span> <span class="p">);</span>
+</pre></div>
+
+<p>3) Fire up the encoder</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">quality</span> <span class="o">=</span> <span class="mi">50</span><span class="p">;</span> <span class="c1">//a number between 1-99, 1: best compression-worst quality, 99: least compression-best quality</span>
+
+<span class="nx">encoder</span><span class="p">.</span><span class="nx">encode</span><span class="p">(</span> <span class="nx">quality</span><span class="p">,</span> <span class="nx">inImage</span><span class="p">,</span> <span class="nx">bw</span> <span class="p">);</span>
+<span class="c1">// this encodes the picture and keeps calling your bytewriter when there is data available. On exit</span>
+<span class="c1">// all data has been written out to the bytewriter</span>
+</pre></div>
+
+<p>There are a couple of samples provided. </p>
+
+<ul>
+<li>
+<code>sample_html.html</code> Loads an image from the DOM into a ImageData and encodes it with petitóJPEG. The output is then displayed side by side in the same html as the original.</li>
+<li>
+<code>sample_node.js</code> It's a node.js script that loads a raw image in RGB format from the file system, encodes it with petitóJPEG and outputs the raw jpeg bitstream into a file.</li>
+</ul><h2>
+<a name="performance" class="anchor" href="#performance"><span class="octicon octicon-link"></span></a>Performance</h2>
+
+<p>Contemporary javascript engines have gotten very good at dealing with data in typed arrays. petitóJPEG makes exhaustive use of these. In my testing I've seen encode times of ~1000ms of 64 megapixel images on my Haswell intel core i5 using Google Chrome.</p>
+
+<h3>
+<a name="limitations" class="anchor" href="#limitations"><span class="octicon octicon-link"></span></a>Limitations</h3>
+
+<ul>
+<li>images are encoded to 4:4:4 chroma sampling only. 4:2:2 and 4:2:0 should be added but it would require chroma plane downsampling making things slower</li>
+</ul>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/concalma/petitoJPEG/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/concalma/petitoJPEG/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/concalma/petitoJPEG"></a> is maintained by <a href="https://github.com/concalma">concalma</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
