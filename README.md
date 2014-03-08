@@ -1,5 +1,6 @@
-petitóJPEG 
-==========
+petitóJPEG ® 
+============
+### by Alberto Vigata ###
 
 ## A high performance JPEG Encoder written in JavaScript ##
 
