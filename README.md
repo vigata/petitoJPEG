@@ -6,6 +6,9 @@ petitóJPEG ®
 
 petitóJPEG is a high performance JPEG encoder written in JavaScript. It can encode huge images (~64 Megapixels) in about 1000ms with contemporary CPUs. It is not a port from C code and it's a direct write into JS. The encoder makes pervasive use of TypedArrays so you'll need an interpreter that supports this.
 
+## Live demo ##
+See petitóJPEG in action right from the browser here http://godromo.com/petitojpeg
+
 ## Usage ##
 The encoder accepts images in RGBA format which happens to be the format that of the ImageData object used in canvas. 
 
