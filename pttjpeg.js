@@ -38,6 +38,7 @@ var pttJPEG = (function namespace() {
      *  string sprintf(string format , [mixed arg1 [, mixed arg2 [ ,...]]]);
      *
      */
+    var ct = typeof exports != "undefined" ? exports : typeof window!="undefined" ? window : self;
     (function(ctx) {
         var sprintf = function() {
             if (!sprintf.cache.hasOwnProperty(arguments[0])) {
@@ -169,14 +170,21 @@ var pttJPEG = (function namespace() {
          */
         ctx.sprintf = sprintf;
         ctx.vsprintf = vsprintf;
-    })(typeof exports != "undefined" ? exports : window);
-    var sprintf = typeof exports != "undefined" ? exports.sprintf : window.sprintf; 
+    })(ct);
+    var sprintf = ct.sprintf;  
 
     function DEBUGMSG(x) {
-        if( console && console.log) {
+        if( importScripts != 'undefined' ) {
+            var m = {
+                'log' : x,
+                'reason' : 'log'
+            };
+            postMessage(m);
+        } else if( typeof console != 'undefined' ) {
             console.log(x);
         }
     }
+
 
     //-------------------------------------------------------------------------------------------
     // petitoJPEG routines 
@@ -1067,6 +1075,8 @@ var pttJPEG = (function namespace() {
             
         }
 
+        this.dlog = DEBUGMSG;
+
         this.pttImage = function(imageData) {
             var width = imageData.width;
             var height = imageData.height;
@@ -1103,6 +1113,11 @@ var pttJPEG = (function namespace() {
                 return ret;
 
             }
+        }
+
+        var encodetime=0;
+        this.getEncodeTime = function() {
+            return encodetime;
         }
 
         /**
@@ -1170,7 +1185,8 @@ var pttJPEG = (function namespace() {
             writeEOI();
             DEBUGMSG(sprintf("wrote EOI. %d bytes written", bitwriter.getWrittenBytes() ));
             var stop = new Date().getTime();
-            DEBUGMSG(sprintf("%d ms", stop-start));
+            encodetime = stop-start;
+            DEBUGMSG(sprintf("%d ms", encodetime));
         }
 
 
@@ -1191,4 +1207,39 @@ var pttJPEG = (function namespace() {
 
 if( typeof exports != 'undefined' ) {
     exports.pttJPEG = pttJPEG;
+}
+try{
+    if (importScripts) {
+        var encoder = new pttJPEG();
+        encoder.dlog("petitoJPEG WebWorker started");
+        // inside a web worker context
+        // see sender for image format
+        onmessage = function( msg ) {
+            var encoder = new pttJPEG();
+            encoder.dlog( encoder.version() );
+            encoder.dlog("petitoJPEG WebWorker: Got image "+  msg.data.width+"x"+msg.data.height );
+            msg.data.imageData.width = msg.data.width;
+            msg.data.imageData.height = msg.data.height;
+            var inImg = new encoder.pttImage( msg.data.imageData );
+            var bw = new encoder.ByteWriter();
+
+            encoder.encode(msg.data.quality, inImg, bw);
+
+            var url = bw.getImgUrl();
+
+            var m = {
+                'url' : url,
+                'bw' : bw.getWrittenBytes(),
+                'reason' : 'image',
+                'width' : msg.data.width,
+                'height' : msg.data.height,
+                'quality' : msg.data.quality,
+                'encodetime' : encoder.getEncodeTime()
+            }
+
+            postMessage(m);
+
+        }
+    }
+} catch (e) {
 }

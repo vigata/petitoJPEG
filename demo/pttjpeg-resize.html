@@ -7,20 +7,26 @@
   <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.css" />
   <script src="http://code.jquery.com/jquery-1.10.2.js"></script>
   <script src="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.js"></script>
+  <script src="support/spin.js"></script>
   <style media="screen" type="text/css">
     #amount {
-        font-weight; bold;
+        font-weight: bold;
         font-size: 4em;
         font-family: Arial;
+    }
+
+    .ui-btn.ui-slider-handle {
+        border-radius: 40px;
     }
   </style>
 </head>
 <body>
-    <div style="font-size: 1.5em;">This tool recodes an image into JPEG format letting you preview the results in realtime. Move the slider to adjust the quality as desired</div>
-    <input type="file" onchange='readfile(this.files[0])'></input>
+    <div id="dragme" style="text-align: center;"><span style="font-size: 4em">Drag me</span> <img src="support/drag_me.png" style="vertical-align: middle; width: 100px;"/></div>
     <label for="slider"></label>
-    <input type="range" id="slider" style="" min="1" max="100" value="50"></input>
+    <input type="range" id="slider" style="" min="1" max="100" value="50" data-highlight="true" ></input>
     <div id="amount" style="font-weight: bold; font-size: 4em;"></div>
+    <input type="file" onchange='readfile(this.files[0])'></input>
+    <div id="spinner"></div>
     <div style="display: inline-block;">
         <div id="compcaption">petit&oacute;JPEG Compressed Image</div>
         <img id="dstimg" src="../img/sample.png" />
@@ -29,9 +35,32 @@
         <div id="origcaption">Original Image</div>
         <img id="img" src="../img/sample.png" />
     </div>
-    <script src="../pttjpeg.js" type="text/javascript" charset="utf-8"></script>
+    <div id="desc" style="font-size: 1.5em;">This tool recodes an image into JPEG format letting you preview the results in realtime. Move the slider to adjust the quality as desired. To save images right click and select save image, or tap and hold for options.</div>
 
     <script> 
+/**
+ * The spinner object from spin.js
+ */
+var opts = {
+  lines: 7, // The number of lines to draw
+  length: 80, // The length of each line
+  width: 40, // The line thickness
+  radius: 32, // The radius of the inner circle
+  corners: 1.0, // Corner roundness (0..1)
+  rotate: 19, // The rotation offset
+  direction: 1, // 1: clockwise, -1: counterclockwise
+  color: '#1a7bc6', // #rgb or #rrggbb or array of colors
+  speed: 1.2, // Rounds per second
+  trail: 60, // Afterglow percentage
+  shadow: false, // Whether to render a shadow
+  hwaccel: false, // Whether to use hardware acceleration
+  className: 'spinner', // The CSS class to assign to the spinner
+  zIndex: 2e9, // The z-index (defaults to 2000000000)
+  top: '50%', // Top position relative to parent in px
+  left: '50%' // Left position relative to parent in px
+};
+
+
 /**
  * Returns an ImageData object 
  * @param imgElem
@@ -41,8 +70,8 @@ function getPixelsFromImageElement(imgElem) {
     // you can lauch chrome with --allow-file-access-from-files to avoid this on local file access. Http access should work fine
     // if pulling images from the same domain
     var canvas = document.createElement("canvas");
-    canvas.width = imgElem.clientWidth;
-    canvas.height = imgElem.clientHeight;
+    canvas.width = imgElem.width;
+    canvas.height = imgElem.height;
     var ctx = canvas.getContext("2d");
     ctx.drawImage(imgElem, 0, 0);
     return ctx.getImageData(0,0,canvas.width,canvas.height);
@@ -51,15 +80,17 @@ function getPixelsFromImageElement(imgElem) {
 
 // this variables contains a copy of the ImageData buffer for the original image
 var origImageData;
+var origUrl="../img/sample.png";
 
 function readfile(f) {
     var reader = new FileReader(); 
     reader.readAsDataURL(f); 
     reader.onload = function() {
-        var url = reader.result;
-        var out = document.getElementById("img");
+        origUrl = reader.result;
+        //var out = document.getElementById("img");
+        var out = document.createElement("img");
         out.style.width = "";
-        out.setAttribute('src', url);
+        out.setAttribute('src', origUrl );
         out.onload = function() {
             origImageData = getPixelsFromImageElement(out);
             do_encode(50);
@@ -71,10 +102,11 @@ function readfile(f) {
     };
 }
 
-var format_info = function(quality, w, h, inbytes, outbytes) {
+var format_info = function(quality, w, h, inbytes, outbytes, encodetime ) {
     var compr = "" +outbytes + " bytes  " + ((inbytes==0) ? '' :  ' / '+ String((inbytes/outbytes).toFixed(1)) + ':1')  ;
+
     var dim = "("+w+"x"+h+")";
-    var str = quality + "% / " + compr;    
+    var str = quality + "% / " + compr + " / " + encodetime + " ms";    
     $('#amount').text(str);
     $('#origcaption').text("Original Image "+dim+" / "+ inbytes + " bytes");
     $('#compcaption').text("petitóJPEG Compressed Image "+dim+" / " + compr);
@@ -82,35 +114,78 @@ var format_info = function(quality, w, h, inbytes, outbytes) {
 
 var do_encode = function(quality) {
     var displayWidth = "600px";
-    var encoder = new pttJPEG();
-    var v = encoder.version();
-    console.log(v);
 
-    var inImg = new encoder.pttImage( origImageData );
-    var bw = new encoder.ByteWriter();
+    // create web worker instance on global object
+    if( typeof worker == 'undefined' ) {
+        worker = new Worker("../pttjpeg.js");
+    }
 
-    encoder.encode(quality, inImg, bw);
 
-    format_info( $('#slider').val(), inImg.width, inImg.height, inImg.width*inImg.height*3,  bw.getWrittenBytes() );
-    var url = bw.getImgUrl();
+    var m = { 
+        'quality' : quality,
+        'imageData' : origImageData,
+        'width' : origImageData.width,
+        'height' : origImageData.height 
+    };
 
-    var dstImgElem = document.getElementById("dstimg");
-    dstImgElem.setAttribute("src", url);
 
-    var imgElem = document.getElementById("img");;
-    imgElem.style.width = displayWidth;
-    dstImgElem.style.width = displayWidth;
+    // Don't schedule encode if it's in progress
+    // we can do this because the single threadness of this module is guaranteed
+    if( !inprogress  ) {
+        var target = document.getElementById('spinner');
+        spinner = new Spinner(opts).spin(target);
+        worker.postMessage(m);
+        inprogress = true;
+    }
+
+    worker.onmessage = function(msg) {
+        switch(msg.data.reason) {
+            case 'image':
+                format_info( msg.data.quality, msg.data.width, msg.data.height, msg.data.width*msg.data.height*3,  msg.data.bw, msg.data.encodetime  );
+                var url = msg.data.url;
+
+                var dstImgElem = document.getElementById("dstimg");
+                var imgElem = document.getElementById("img");;
+
+                imgElem.style.width = displayWidth;
+                dstImgElem.style.width = displayWidth;
+
+                dstImgElem.setAttribute("src", url);
+                imgElem.setAttribute("src", origUrl );
+                
+
+                inprogress = false;
+                spinner.stop();
+                break;
+            case 'log':
+                console.log(msg.data.log);
+                break;
+            default:
+                break;
+        }
+    }
 }
 
 window.onload = function() { 
+
     // this variables contains a copy of the ImageData buffer for the original image
     origImageData = getPixelsFromImageElement( document.getElementById('img'));
+    inprogress = false;
     do_encode(50); 
     $("#slider").change( function() {
         var val = $('#slider').val();
-        console.log(val);
-        do_encode(val|0);
+        //console.log(val);
+        //do_encode(val|0);
         });
+
+    var enc = function() { 
+            var val = $('#slider').val();
+            console.log(val);
+            do_encode(val|0);
+            };
+    $("#slider").
+        on('change',enc).
+        on('slidestop',enc);
 
 };
   </script>
