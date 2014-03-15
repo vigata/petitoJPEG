@@ -31,20 +31,22 @@
       </header>
       <section>
         <h1>
-<a name="petit%C3%B3jpeg--" class="anchor" href="#petit%C3%B3jpeg--"><span class="octicon octicon-link"></span></a>petitóJPEG ® </h1>
-
-<h3>
-<a name="by-alberto-vigata" class="anchor" href="#by-alberto-vigata"><span class="octicon octicon-link"></span></a>by Alberto Vigata</h3>
+<a name="petit%C3%B3jpeg---by-alberto-vigata" class="anchor" href="#petit%C3%B3jpeg---by-alberto-vigata"><span class="octicon octicon-link"></span></a>petitóJPEG ®  by Alberto Vigata</h1>
 
 <h2>
 <a name="a-high-performance-jpeg-encoder-written-in-javascript" class="anchor" href="#a-high-performance-jpeg-encoder-written-in-javascript"><span class="octicon octicon-link"></span></a>A high performance JPEG Encoder written in JavaScript</h2>
 
-<p>petitóJPEG is a high performance JPEG encoder written in JavaScript. It can encode huge images (~64 Megapixels) in about 1000ms with contemporary CPUs. It is not a port from C code and it's a direct write into JS. The encoder makes pervasive use of TypedArrays so you'll need an interpreter that supports this.</p>
+<p>petitóJPEG is a high performance JPEG encoder written in JavaScript. It can encode huge images (~64 Megapixels) in about 1000ms with contemporary CPUs. It is not a port from C code and it's a direct write into JS. The encoder makes pervasive use of TypedArrays so you'll need an interpreter that supports this. It also supports being run inside nodeJS as well as a WebWorker.</p>
 
 <h2>
 <a name="live-demo" class="anchor" href="#live-demo"><span class="octicon octicon-link"></span></a>Live demo</h2>
 
 <p>See petitóJPEG in action right from the browser here <a href="http://godromo.com/petitojpeg">http://godromo.com/petitojpeg</a></p>
+
+<h2>
+<a name="performance" class="anchor" href="#performance"><span class="octicon octicon-link"></span></a>Performance</h2>
+
+<p>Contemporary javascript engines have gotten very good at dealing with data in typed arrays. petitóJPEG makes exhaustive use of these. In my testing I've seen encode times of ~1000ms of 64 megapixel images on my Haswell intel core i5 using Google Chrome.</p>
 
 <h2>
 <a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
@@ -94,9 +96,61 @@
 <li>
 <code>sample_node.js</code> It's a node.js script that loads a raw image in RGB format from the file system, encodes it with petitóJPEG and outputs the raw jpeg bitstream into a file.</li>
 </ul><h2>
-<a name="performance" class="anchor" href="#performance"><span class="octicon octicon-link"></span></a>Performance</h2>
+<a name="usage-as-a-webworker" class="anchor" href="#usage-as-a-webworker"><span class="octicon octicon-link"></span></a>Usage as a WebWorker</h2>
 
-<p>Contemporary javascript engines have gotten very good at dealing with data in typed arrays. petitóJPEG makes exhaustive use of these. In my testing I've seen encode times of ~1000ms of 64 megapixel images on my Haswell intel core i5 using Google Chrome.</p>
+<p>petitóJPEG can run as a dedicated web worker. This way the picture processing will not lock up your presentation thread or other operations from the calling thread. Look at the demo directory for an implementation of a web page using web workers.
+A message format has been defined for message passing between client-side and the worker.</p>
+
+<h3>
+<a name="from-client-side-to-petitojpeg-web-worker" class="anchor" href="#from-client-side-to-petitojpeg-web-worker"><span class="octicon octicon-link"></span></a>From client-side to petitoJPEG web worker</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="c1">// Create the worker. Make sure you only create one, otherwise there will be a thread per encode</span>
+<span class="nx">worker</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Worker</span><span class="p">(</span><span class="s2">"pttjpeg.js"</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">m</span> <span class="o">=</span> <span class="p">{</span> 
+  <span class="s1">'quality'</span> <span class="o">:</span> <span class="nx">quality</span><span class="p">,</span>              <span class="c1">// quality desired</span>
+  <span class="s1">'imageData'</span> <span class="o">:</span> <span class="nx">imageData</span><span class="p">,</span>      <span class="c1">// the imageData object</span>
+  <span class="s1">'width'</span> <span class="o">:</span> <span class="nx">width</span><span class="p">,</span>    <span class="c1">// the width of the image</span>
+  <span class="s1">'height'</span> <span class="o">:</span> <span class="nx">height</span>   <span class="c1">// the height of the image</span>
+<span class="p">};</span>
+
+<span class="c1">// Post message to worker</span>
+<span class="nx">worker</span><span class="p">.</span><span class="nx">postMessage</span><span class="p">(</span><span class="nx">m</span><span class="p">);</span>
+</pre></div>
+
+<h3>
+<a name="receiving-message-from-petitojpeg-web-worker-to-client-side" class="anchor" href="#receiving-message-from-petitojpeg-web-worker-to-client-side"><span class="octicon octicon-link"></span></a>Receiving message from petitoJPEG web worker to client-side</h3>
+
+<p>The received message format is as follows:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">m</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">'url'</span> <span class="o">:</span> <span class="nx">url</span><span class="p">,</span>    <span class="c1">// binary data encoded in an url</span>
+    <span class="s1">'bw'</span> <span class="o">:</span> <span class="nx">writtenbytes</span><span class="p">,</span>  <span class="c1">// int with bytes written</span>
+    <span class="s1">'reason'</span> <span class="o">:</span> <span class="s1">'image'</span><span class="p">,</span>   <span class="c1">// the message reason </span>
+    <span class="s1">'width'</span> <span class="o">:</span> <span class="nx">width</span><span class="p">,</span>      <span class="c1">// the width of pic  </span>
+    <span class="s1">'height'</span> <span class="o">:</span> <span class="nx">height</span><span class="p">,</span>    <span class="c1">// the height of pic</span>
+    <span class="s1">'quality'</span> <span class="o">:</span> <span class="nx">quality</span><span class="p">,</span>  <span class="c1">// the quality used for encode</span>
+    <span class="s1">'encodetime'</span> <span class="o">:</span> <span class="nx">time_in_ms</span>   <span class="c1">// the time it took in ms to encode picture</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>You have to look into the 'reason' field of the message to see what is being sent back. Look at the code below:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">worker</span><span class="p">.</span><span class="nx">onmessage</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">msg</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">switch</span><span class="p">(</span><span class="nx">msg</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">reason</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">case</span> <span class="s1">'image'</span><span class="o">:</span>
+            <span class="c1">// an image was sent here. url contains the bytes, as well as the other relevant info</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="k">case</span> <span class="s1">'log'</span><span class="o">:</span>
+            <span class="c1">// logging from the worker is relied back through this message</span>
+            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">msg</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">log</span><span class="p">);</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="k">default</span><span class="o">:</span>
+            <span class="k">break</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+</pre></div>
 
 <h3>
 <a name="limitations" class="anchor" href="#limitations"><span class="octicon octicon-link"></span></a>Limitations</h3>
