@@ -8,6 +8,9 @@ petitóJPEG is a high performance JPEG encoder written in JavaScript. It can enc
 ## Live demo ##
 See petitóJPEG in action right from the browser here http://godromo.com/petitojpeg
 
+## Performance ##
+Contemporary javascript engines have gotten very good at dealing with data in typed arrays. petitóJPEG makes exhaustive use of these. In my testing I've seen encode times of ~1000ms of 64 megapixel images on my Haswell intel core i5 using Google Chrome.
+
 ## Usage ##
 The encoder accepts images in RGBA format which happens to be the format that of the ImageData object used in canvas. 
 
@@ -101,9 +104,6 @@ worker.onmessage = function(msg) {
 }
 
 ```
-
-## Performance ##
-Contemporary javascript engines have gotten very good at dealing with data in typed arrays. petitóJPEG makes exhaustive use of these. In my testing I've seen encode times of ~1000ms of 64 megapixel images on my Haswell intel core i5 using Google Chrome.
 
 ### Limitations ###
 * images are encoded to 4:4:4 chroma sampling only. 4:2:2 and 4:2:0 should be added but it would require chroma plane downsampling making things slower
