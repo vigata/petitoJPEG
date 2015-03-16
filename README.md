@@ -1,4 +1,4 @@
-petitóJPEG ®  by Alberto Vigata
+petitóJPEG
 ===============================
 
 ## A high performance JPEG Encoder written in JavaScript ##
@@ -10,6 +10,9 @@ See petitóJPEG in action right from the browser here http://godromo.com/petitoj
 
 ## Performance ##
 Contemporary javascript engines have gotten very good at dealing with data in typed arrays. petitóJPEG makes exhaustive use of these. In my testing I've seen encode times of ~1000ms of 64 megapixel images on my Haswell intel core i5 using Google Chrome.
+
+## Author ##
+[Alberto Vigata](http://vigata.com/about)
 
 ## Usage ##
 The encoder accepts images in RGBA format which happens to be the format that of the ImageData object used in canvas. 
