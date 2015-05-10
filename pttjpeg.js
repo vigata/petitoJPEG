@@ -67,7 +67,11 @@ var pttJPEG = (function namespace() {
      *  string sprintf(string format , [mixed arg1 [, mixed arg2 [ ,...]]]);
      *
      */
-    var ct = typeof exports != "undefined" ? exports : typeof window!="undefined" ? window : self;
+    var ct = {};        //  This is a modification to the embedded sprintf.js logic so that it
+                        //  will attach itself to this object only.  This is so that the embedded
+                        //  version of sprintf.js does not get exported out into the global /
+                        //  application environment.
+
     (function(ctx) {
         var sprintf = function() {
             if (!sprintf.cache.hasOwnProperty(arguments[0])) {
