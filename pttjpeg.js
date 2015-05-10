@@ -1267,6 +1267,7 @@
 
             }
         } catch (e) {
+            DEBUGMSG(sprintf("Caught exception: %s", e));
         }
     } else if (typeof define != undefined && define.amd) {          //  Loaded with AMD /
                                                                     //  RequireJS.
