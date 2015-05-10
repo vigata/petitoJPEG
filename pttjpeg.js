@@ -1238,11 +1238,11 @@
         try{
             var encoder = new PTTJPEG();
             encoder.dlog("petitoJPEG WebWorker started");
+            encoder.dlog( encoder.version() );
             // inside a web worker context
             // see sender for image format
             onmessage = function( msg ) {
                 var encoder = new PTTJPEG();
-                encoder.dlog( encoder.version() );
                 encoder.dlog("petitoJPEG WebWorker: Got image "+  msg.data.width+"x"+msg.data.height );
                 msg.data.imageData.width = msg.data.width;
                 msg.data.imageData.height = msg.data.height;
