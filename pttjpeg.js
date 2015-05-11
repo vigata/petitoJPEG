@@ -1268,7 +1268,12 @@
             }
         } catch (e) {
         }
-    } else if (typeof window != 'undefined') {                      //  Inside a regular web page.
+    } else if (typeof define != undefined && define.amd) {          //  Loaded with AMD /
+                                                                    //  RequireJS.
+        define([], function() { return PTTJPEG; });
+    } else if (typeof window != 'undefined') {                      //  Inside a regular web page,
+                                                                    //  and not loaded via AMD /
+                                                                    //  RequireJS.
         window.pttJPEG = PTTJPEG;
     }
 }());
