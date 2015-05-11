@@ -1034,7 +1034,7 @@
 
         //--------------------------------------------------------------------
         // exported functions
-        this.version = function() { return "petitóJPEG 0.3"; };
+        this.version = function() { return "petitóJPEG 0.4"; };
 
         this.setVerbosity = function(flagVerbose) {
             flagQuiet = !flagVerbose;

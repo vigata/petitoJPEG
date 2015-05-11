@@ -3,7 +3,11 @@ petitóJPEG
 
 ## A high performance JPEG Encoder written in JavaScript ##
 
-petitóJPEG is a high performance JPEG encoder written in JavaScript. It can encode huge images (~64 Megapixels) in about 1000ms with contemporary CPUs. It is not a port from C code and it's a direct write into JS. The encoder makes pervasive use of TypedArrays so you'll need an interpreter that supports this. It also supports being run inside nodeJS as well as a WebWorker.
+petitóJPEG is a high performance JPEG encoder written in JavaScript. It can encode huge images (~64 Megapixels) in about 1000ms with contemporary CPUs. It is not a port from C code and it's a direct write into JS. The encoder makes pervasive use of TypedArrays so you'll need an interpreter that supports this. Currently supported contexts are:
+- The web browser
+- nodeJS
+- As a WebWorker
+- AMD/RequireJS
 
 ## Live demo ##
 See petitóJPEG in action right from the browser here http://godromo.com/petitojpeg
