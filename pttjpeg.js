@@ -206,7 +206,11 @@
     })(ct);
     var sprintf = ct.sprintf;  
 
+    var flagQuiet = false;
+
     function DEBUGMSG(x) {
+        if (flagQuiet) return;
+
         if( typeof importScripts != 'undefined' ) {
             var m = {
                 'log' : x,
@@ -1031,6 +1035,10 @@
         //--------------------------------------------------------------------
         // exported functions
         this.version = function() { return "petitóJPEG 0.3"; };
+
+        this.setVerbosity = function(flagVerbose) {
+            flagQuiet = !flagVerbose;
+        }
 
         this.ByteWriter = function() {
             var bufsize = 1024*1024*10;
