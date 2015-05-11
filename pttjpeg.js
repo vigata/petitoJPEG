@@ -1234,9 +1234,9 @@ var pttJPEG = (function namespace() {
     return PTTJPEG; 
 }());
 
-if( typeof exports != 'undefined' ) {
+if( typeof exports != 'undefined' ) {                           //  Inside CommonJS / NodeJS.
     exports.pttJPEG = pttJPEG;
-} else if ( typeof importScripts != 'undefined' ) {
+} else if ( typeof importScripts != 'undefined' ) {             //  Inside an HTML5 web worker.
     try{
         var encoder = new pttJPEG();
         encoder.dlog("petitoJPEG WebWorker started");
