@@ -1228,46 +1228,43 @@ var pttJPEG = (function namespace() {
     }
 
 
+    if( typeof exports != 'undefined' ) {                           //  Inside CommonJS / NodeJS.
+        exports.pttJPEG = PTTJPEG;
+    } else if ( typeof importScripts != 'undefined' ) {             //  Inside an HTML5 web worker.
+        try{
+            var encoder = new PTTJPEG();
+            encoder.dlog("petitoJPEG WebWorker started");
+            // inside a web worker context
+            // see sender for image format
+            onmessage = function( msg ) {
+                var encoder = new PTTJPEG();
+                encoder.dlog( encoder.version() );
+                encoder.dlog("petitoJPEG WebWorker: Got image "+  msg.data.width+"x"+msg.data.height );
+                msg.data.imageData.width = msg.data.width;
+                msg.data.imageData.height = msg.data.height;
+                var inImg = new encoder.pttImage( msg.data.imageData );
+                var bw = new encoder.ByteWriter();
 
+                encoder.encode(msg.data.quality, inImg, bw);
 
+                var url = bw.getImgUrl();
+
+                var m = {
+                    'url' : url,
+                    'bw' : bw.getWrittenBytes(),
+                    'reason' : 'image',
+                    'width' : msg.data.width,
+                    'height' : msg.data.height,
+                    'quality' : msg.data.quality,
+                    'encodetime' : encoder.getEncodeTime()
+                }
+
+                postMessage(m);
+
+            }
+        } catch (e) {
+        }
+    }
 
     return PTTJPEG; 
 }());
-
-if( typeof exports != 'undefined' ) {                           //  Inside CommonJS / NodeJS.
-    exports.pttJPEG = pttJPEG;
-} else if ( typeof importScripts != 'undefined' ) {             //  Inside an HTML5 web worker.
-    try{
-        var encoder = new pttJPEG();
-        encoder.dlog("petitoJPEG WebWorker started");
-        // inside a web worker context
-        // see sender for image format
-        onmessage = function( msg ) {
-            var encoder = new pttJPEG();
-            encoder.dlog( encoder.version() );
-            encoder.dlog("petitoJPEG WebWorker: Got image "+  msg.data.width+"x"+msg.data.height );
-            msg.data.imageData.width = msg.data.width;
-            msg.data.imageData.height = msg.data.height;
-            var inImg = new encoder.pttImage( msg.data.imageData );
-            var bw = new encoder.ByteWriter();
-
-            encoder.encode(msg.data.quality, inImg, bw);
-
-            var url = bw.getImgUrl();
-
-            var m = {
-                'url' : url,
-                'bw' : bw.getWrittenBytes(),
-                'reason' : 'image',
-                'width' : msg.data.width,
-                'height' : msg.data.height,
-                'quality' : msg.data.quality,
-                'encodetime' : encoder.getEncodeTime()
-            }
-
-            postMessage(m);
-
-        }
-    } catch (e) {
-    }
-}
