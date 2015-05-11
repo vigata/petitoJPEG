@@ -203,7 +203,7 @@ var pttJPEG = (function namespace() {
     var sprintf = ct.sprintf;  
 
     function DEBUGMSG(x) {
-        if( importScripts != 'undefined' ) {
+        if( typeof importScripts != 'undefined' ) {
             var m = {
                 'log' : x,
                 'reason' : 'log'
