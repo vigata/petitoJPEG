@@ -26,19 +26,52 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-var pttJPEG = (function namespace() {
+(function namespace() {
 
     //-------------------------------------------------------------------------------------------
     // Debugging support
     //-------------------------------------------------------------------------------------------
 
-    /*! sprintf.js | Copyright (c) 2007-2013 Alexandru Marasteanu <hello at alexei dot ro> | 3 clause BSD license */
-    /* usage:
+    /*! sprintf.js
+     *
+     * Copyright (c) 2007-2014, Alexandru Marasteanu <hello [at) alexei (dot] ro>
+     * All rights reserved.
+     *
+     * Redistribution and use in source and binary forms, with or without
+     * modification, are permitted provided that the following conditions are met:
+     *
+     *     * Redistributions of source code must retain the above copyright
+     *       notice, this list of conditions and the following disclaimer.
+     *
+     *     * Redistributions in binary form must reproduce the above copyright
+     *       notice, this list of conditions and the following disclaimer in the
+     *       documentation and/or other materials provided with the distribution.
+     *
+     *     * Neither the name of this software nor the names of its contributors may be
+     *       used to endorse or promote products derived from this software without
+     *       specific prior written permission.
+     *
+     * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+     * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+     * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+     * DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR
+     * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+     * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+     * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+     * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+     * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+     * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+     *
+     * usage:
      *
      *  string sprintf(string format , [mixed arg1 [, mixed arg2 [ ,...]]]);
      *
      */
-    var ct = typeof exports != "undefined" ? exports : typeof window!="undefined" ? window : self;
+    var ct = {};        //  This is a modification to the embedded sprintf.js logic so that it
+                        //  will attach itself to this object only.  This is so that the embedded
+                        //  version of sprintf.js does not get exported out into the global /
+                        //  application environment.
+
     (function(ctx) {
         var sprintf = function() {
             if (!sprintf.cache.hasOwnProperty(arguments[0])) {
@@ -173,8 +206,12 @@ var pttJPEG = (function namespace() {
     })(ct);
     var sprintf = ct.sprintf;  
 
+    var flagQuiet = false;
+
     function DEBUGMSG(x) {
-        if( importScripts != 'undefined' ) {
+        if (flagQuiet) return;
+
+        if( typeof importScripts != 'undefined' ) {
             var m = {
                 'log' : x,
                 'reason' : 'log'
@@ -999,6 +1036,10 @@ var pttJPEG = (function namespace() {
         // exported functions
         this.version = function() { return "petitóJPEG 0.3"; };
 
+        this.setVerbosity = function(flagVerbose) {
+            flagQuiet = !flagVerbose;
+        }
+
         this.ByteWriter = function() {
             var bufsize = 1024*1024*10;
             var buf = new Uint8Array(bufsize);
@@ -1199,47 +1240,49 @@ var pttJPEG = (function namespace() {
     }
 
 
-
-
-
-    return PTTJPEG; 
-}());
-
-if( typeof exports != 'undefined' ) {
-    exports.pttJPEG = pttJPEG;
-}
-try{
-    if (importScripts) {
-        var encoder = new pttJPEG();
-        encoder.dlog("petitoJPEG WebWorker started");
-        // inside a web worker context
-        // see sender for image format
-        onmessage = function( msg ) {
-            var encoder = new pttJPEG();
+    if( typeof exports != 'undefined' ) {                           //  Inside CommonJS / NodeJS.
+        exports.pttJPEG = PTTJPEG;
+    } else if ( typeof importScripts != 'undefined' ) {             //  Inside an HTML5 web worker.
+        try{
+            var encoder = new PTTJPEG();
+            encoder.dlog("petitoJPEG WebWorker started");
             encoder.dlog( encoder.version() );
-            encoder.dlog("petitoJPEG WebWorker: Got image "+  msg.data.width+"x"+msg.data.height );
-            msg.data.imageData.width = msg.data.width;
-            msg.data.imageData.height = msg.data.height;
-            var inImg = new encoder.pttImage( msg.data.imageData );
-            var bw = new encoder.ByteWriter();
+            // inside a web worker context
+            // see sender for image format
+            onmessage = function( msg ) {
+                var encoder = new PTTJPEG();
+                encoder.dlog("petitoJPEG WebWorker: Got image "+  msg.data.width+"x"+msg.data.height );
+                msg.data.imageData.width = msg.data.width;
+                msg.data.imageData.height = msg.data.height;
+                var inImg = new encoder.pttImage( msg.data.imageData );
+                var bw = new encoder.ByteWriter();
 
-            encoder.encode(msg.data.quality, inImg, bw);
+                encoder.encode(msg.data.quality, inImg, bw);
 
-            var url = bw.getImgUrl();
+                var url = bw.getImgUrl();
 
-            var m = {
-                'url' : url,
-                'bw' : bw.getWrittenBytes(),
-                'reason' : 'image',
-                'width' : msg.data.width,
-                'height' : msg.data.height,
-                'quality' : msg.data.quality,
-                'encodetime' : encoder.getEncodeTime()
+                var m = {
+                    'url' : url,
+                    'bw' : bw.getWrittenBytes(),
+                    'reason' : 'image',
+                    'width' : msg.data.width,
+                    'height' : msg.data.height,
+                    'quality' : msg.data.quality,
+                    'encodetime' : encoder.getEncodeTime()
+                }
+
+                postMessage(m);
+
             }
-
-            postMessage(m);
-
+        } catch (e) {
+            DEBUGMSG(sprintf("Caught exception: %s", e));
         }
+    } else if (typeof define != undefined && define.amd) {          //  Loaded with AMD /
+                                                                    //  RequireJS.
+        define([], function() { return PTTJPEG; });
+    } else if (typeof window != 'undefined') {                      //  Inside a regular web page,
+                                                                    //  and not loaded via AMD /
+                                                                    //  RequireJS.
+        window.pttJPEG = PTTJPEG;
     }
-} catch (e) {
-}
+}());
