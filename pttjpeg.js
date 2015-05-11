@@ -1238,7 +1238,7 @@ if( typeof exports != 'undefined' ) {
     exports.pttJPEG = pttJPEG;
 }
 try{
-    if (importScripts) {
+    if ( typeof importScripts != 'undefined' ) {
         var encoder = new pttJPEG();
         encoder.dlog("petitoJPEG WebWorker started");
         // inside a web worker context
