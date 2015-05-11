@@ -26,7 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-var pttJPEG = (function namespace() {
+(function namespace() {
 
     //-------------------------------------------------------------------------------------------
     // Debugging support
@@ -1268,7 +1268,7 @@ var pttJPEG = (function namespace() {
             }
         } catch (e) {
         }
+    } else if (typeof window != 'undefined') {                      //  Inside a regular web page.
+        window.pttJPEG = PTTJPEG;
     }
-
-    return PTTJPEG; 
 }());
