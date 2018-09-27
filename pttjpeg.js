@@ -1032,6 +1032,78 @@
             }
         }
 
+        /**
+         * xpos:int
+         * ypos:int
+         *
+         * This functions calls the getpixels() object to obtain an McuImg object that contains
+         * an Uint8Array() buffer with pixel data in RGBA byte order. McuImg includes an offset
+         * to the beginning of the requested area as well as the stride in bytes.
+         *
+         * The method converts the RGB pixels into YUV ready for further processing. The destination
+         * pixels are written to the local private PTTJPEG fields YDU,UDU,VDU
+         *
+         * 4:2:0 mode
+         *
+         */
+        function rgb2yuv_420( xpos, ypos)
+        {
+            // RGBA format in unpacked bytes
+            var mcuimg = inputImage.getPixels( xpos, ypos, 8, 8);
+
+            // DEBUGMSG(sprintf("getpixels() xpos:%d ypos:%d retw:%d reth:%d", xpos, ypos, mcuimg.w, mcuimg.h ));
+
+            var buf = mcuimg.buf;
+            var pel;
+            var P=0;
+            var x,y,off,off_1=0,R,G,B;
+
+            if( mcuimg.w==8 && mcuimg.h==8 ) {
+                /* block is 8x8 */
+                for ( y=0; y<8; y++) {        
+                    for (x=0; x<8; x++) {
+                        off = mcuimg.offset + y*mcuimg.stride + x*4;
+
+                        R = buf[off];
+                        G = buf[off+1];
+                        B = buf[off+2];
+
+                        YDU[off_1]   =((( 0.29900)*R+( 0.58700)*G+( 0.11400)*B))-0x80;
+                        UDU[off_1]   =(((-0.16874)*R+(-0.33126)*G+( 0.50000)*B));
+                        VDU[off_1++] =((( 0.50000)*R+(-0.41869)*G+(-0.08131)*B)); 
+                    }
+                }
+            } else {
+                /* we separate the borderline conditions to avoid having to branch out
+                 * on every mcu */
+                for( y=0; y<8; y++ ) {
+                    for( x=0; x<8; x++ ) {
+                        var xx=x, yy=y;
+                        if( x >= mcuimg.w ) {
+                            xx = mcuimg.w-1;
+                        }
+
+                        if( y >= mcuimg.h ) {
+                            yy = mcuimg.h-1;
+                        }
+
+
+                        off = mcuimg.offset + yy*mcuimg.stride + xx*4;
+
+                        R = buf[off];
+                        G = buf[off+1];
+                        B = buf[off+2];
+
+                        YDU[off_1]   =((( 0.29900)*R+( 0.58700)*G+( 0.11400)*B))-0x80;
+                        UDU[off_1]   =(((-0.16874)*R+(-0.33126)*G+( 0.50000)*B));
+                        VDU[off_1++] =((( 0.50000)*R+(-0.41869)*G+(-0.08131)*B)); 
+                    }
+                }
+            }
+        }
+
+
+
         //--------------------------------------------------------------------
         // exported functions
         this.version = function() { return "petitóJPEG 0.4"; };
