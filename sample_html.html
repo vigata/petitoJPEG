@@ -18,7 +18,7 @@
      */
     function getPixelsFromImageElement(imgElem) {
         // imgElem must be on the same server otherwise a cross-origin error will be thrown "SECURITY_ERR: DOM Exception 18"
-        // you can lauch chrome with --allow-file-access-from-files to avoid this on local file access. Http access should work fine
+        // you can lauch chrome with --allow-file-access-from-files  to avoid this on local file access. Http access should work fine
         // if pulling images from the same domain
         var canvas = document.createElement("canvas");
         canvas.width = imgElem.clientWidth;

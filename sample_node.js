@@ -85,7 +85,8 @@ var bw = new (function() {
 
 
 // encode
-encoder.encode(90, inImg, bw);
+quality = 90
+encoder.encode(quality, inImg, bw);
 
 // close file
 bw.close();
