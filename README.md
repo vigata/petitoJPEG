@@ -114,3 +114,7 @@ worker.onmessage = function(msg) {
 
 ### Limitations ###
 * images are encoded to 4:4:4 chroma sampling only. 4:2:2 and 4:2:0 should be added but it would require chroma plane downsampling making things slower. There is work in progress to add 4:2:0 support`
+
+### Tips ###
+Due to cross origin limitations some browsers limit local file access to JS APIs. This behavior can usually be overidden by the user through switches on startup. On chrome for example you can use  --allow-file-access-from-files  to allow file access.
+
