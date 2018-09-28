@@ -462,8 +462,21 @@
         var fdtbl_Y = new Float64Array(64);
         var fdtbl_UV = new Float64Array(64);
         var YDU = new Float64Array(64);
+        var YDU2 = new Float64Array(64);  // filled in 420 mode
+        var YDU3 = new Float64Array(64);  // filled in 420 mode
+        var YDU4 = new Float64Array(64);  // filled in 420 mode
+
         var UDU = new Float64Array(64);
+        var UDU1 = new Float64Array(64);
+        var UDU2 = new Float64Array(64);
+        var UDU3 = new Float64Array(64);
+        var UDU4 = new Float64Array(64);
+        
         var VDU = new Float64Array(64);
+        var VDU1 = new Float64Array(64);
+        var VDU2 = new Float64Array(64);
+        var VDU3 = new Float64Array(64);
+        var VDU4 = new Float64Array(64);
 
         var DU = new Int32Array(64);
         var YTable = new Int32Array(64);
@@ -764,7 +777,7 @@
 
 
         // width:int, height:int
-        function writeSOF0( width, height)
+        function writeSOF0( width, height, _444 )
         {
             bitwriter.putshort(0xFFC0); // marker
             bitwriter.putshort(17);   // length, truecolor YUV JPG
@@ -772,14 +785,17 @@
             bitwriter.putshort(height);
             bitwriter.putshort(width);
             bitwriter.putbyte(3);    // nrofcomponents
-            bitwriter.putbyte(1);    // IdY
-            bitwriter.putbyte(0x11); // HVY
-            bitwriter.putbyte(0);    // QTY
-            bitwriter.putbyte(2);    // IdU
-            bitwriter.putbyte(0x11); // HVU
+            
+            bitwriter.putbyte(1);    // IdY. id of Y 
+            bitwriter.putbyte(_444 ? 0x11 : 0x22); // HVY. sampling factor horizontal Y  | sampling factor vertical Y
+            bitwriter.putbyte(0);    // QTY. quantization table table  
+
+            bitwriter.putbyte(2);    // IdU 
+            bitwriter.putbyte(_444 ? 0x11 : 0x11); // HVU sampling factor horizontal U  | sampling factor vertical U. 0x11 -> 4:4:4, 0x22 -> 4:2:0
             bitwriter.putbyte(1);    // QTU
+            
             bitwriter.putbyte(3);    // IdV
-            bitwriter.putbyte(0x11); // HVV
+            bitwriter.putbyte(_444 ? 0x11 : 0x11); // HVV sampling factor horizontal V  | sampling factor vertical V. 0x11 -> 4:4:4, 0x22 -> 4:2:0
             bitwriter.putbyte(1);    // QTV
         }
 
@@ -976,7 +992,7 @@
          * pixels are written to the local private PTTJPEG fields YDU,UDU,VDU
          *
          */
-        function rgb2yuv_444( xpos, ypos)
+        function rgb2yuv_444( xpos, ypos, YDU, UDU, VDU )
         {
             // RGBA format in unpacked bytes
             var mcuimg = inputImage.getPixels( xpos, ypos, 8, 8);
@@ -1032,6 +1048,35 @@
             }
         }
 
+
+        // takes 4 DU units and downsamples them 2:1 using simple averaging
+        
+        function downsample_8_line(DU, outoff, DU1, DU2, inoff) {
+            DU[outoff + 0] = (DU1[inoff + 00] + DU1[inoff + 01] + DU1[inoff + 08] + DU1[inoff + 09] + 2)>>2;
+            DU[outoff + 1] = (DU1[inoff + 02] + DU1[inoff + 03] + DU1[inoff + 10] + DU1[inoff + 11] + 2)>>2;
+            DU[outoff + 2] = (DU1[inoff + 04] + DU1[inoff + 05] + DU1[inoff + 12] + DU1[inoff + 13] + 2)>>2;
+            DU[outoff + 3] = (DU1[inoff + 06] + DU1[inoff + 07] + DU1[inoff + 14] + DU1[inoff + 15] + 2)>>2;
+
+            DU[outoff + 4] = (DU2[inoff + 00] + DU2[inoff + 01] + DU2[inoff + 08] + DU2[inoff + 09] + 2)>>2;
+            DU[outoff + 5] = (DU2[inoff + 02] + DU2[inoff + 03] + DU2[inoff + 10] + DU2[inoff + 11] + 2)>>2;
+            DU[outoff + 6] = (DU2[inoff + 04] + DU2[inoff + 05] + DU2[inoff + 12] + DU2[inoff + 13] + 2)>>2;
+            DU[outoff + 7] = (DU2[inoff + 06] + DU2[inoff + 07] + DU2[inoff + 14] + DU2[inoff + 15] + 2)>>2;
+        }
+
+        function downsample_DU(DU, DU1, DU2, DU3, DU4) {
+            downsample_8_line( DU, 0, DU1, DU2, 0 );
+            downsample_8_line( DU, 8, DU1, DU2, 16 );
+            downsample_8_line( DU, 16, DU1, DU2, 32 );
+            downsample_8_line( DU, 24, DU1, DU2, 48 );
+
+            downsample_8_line( DU, 32, DU3, DU4, 0 );
+            downsample_8_line( DU, 40, DU3, DU4, 16 );
+            downsample_8_line( DU, 48, DU3, DU4, 32 );
+            downsample_8_line( DU, 56, DU3, DU4, 48 );
+        }
+
+
+
         /**
          * xpos:int
          * ypos:int
@@ -1041,65 +1086,23 @@
          * to the beginning of the requested area as well as the stride in bytes.
          *
          * The method converts the RGB pixels into YUV ready for further processing. The destination
-         * pixels are written to the local private PTTJPEG fields YDU,UDU,VDU
+         * pixels are written to the local private PTTJPEG fields YDU[2,3,4],UDU,VDU
          *
-         * 4:2:0 mode
+         * 
+         * output: for luma blocks. YDU, YDU2, YDU3, YDU4
+         *         2 chroma blocks, UDU, VDU
          *
          */
         function rgb2yuv_420( xpos, ypos)
         {
-            // RGBA format in unpacked bytes
-            var mcuimg = inputImage.getPixels( xpos, ypos, 8, 8);
+            rgb2yuv_444( xpos, ypos, YDU, UDU1, VDU1 );
+            rgb2yuv_444( xpos+8, ypos, YDU2, UDU2, VDU2 );
+            rgb2yuv_444( xpos, ypos+8, YDU3, UDU3, VDU3 );
+            rgb2yuv_444( xpos+8, ypos+8, YDU4, UDU4, VDU4 );
 
-            // DEBUGMSG(sprintf("getpixels() xpos:%d ypos:%d retw:%d reth:%d", xpos, ypos, mcuimg.w, mcuimg.h ));
+            downsample_DU( UDU, UDU1, UDU2, UDU3, UDU4 );
+            downsample_DU( VDU, VDU1, VDU2, VDU3, VDU4 );
 
-            var buf = mcuimg.buf;
-            var pel;
-            var P=0;
-            var x,y,off,off_1=0,R,G,B;
-
-            if( mcuimg.w==8 && mcuimg.h==8 ) {
-                /* block is 8x8 */
-                for ( y=0; y<8; y++) {        
-                    for (x=0; x<8; x++) {
-                        off = mcuimg.offset + y*mcuimg.stride + x*4;
-
-                        R = buf[off];
-                        G = buf[off+1];
-                        B = buf[off+2];
-
-                        YDU[off_1]   =((( 0.29900)*R+( 0.58700)*G+( 0.11400)*B))-0x80;
-                        UDU[off_1]   =(((-0.16874)*R+(-0.33126)*G+( 0.50000)*B));
-                        VDU[off_1++] =((( 0.50000)*R+(-0.41869)*G+(-0.08131)*B)); 
-                    }
-                }
-            } else {
-                /* we separate the borderline conditions to avoid having to branch out
-                 * on every mcu */
-                for( y=0; y<8; y++ ) {
-                    for( x=0; x<8; x++ ) {
-                        var xx=x, yy=y;
-                        if( x >= mcuimg.w ) {
-                            xx = mcuimg.w-1;
-                        }
-
-                        if( y >= mcuimg.h ) {
-                            yy = mcuimg.h-1;
-                        }
-
-
-                        off = mcuimg.offset + yy*mcuimg.stride + xx*4;
-
-                        R = buf[off];
-                        G = buf[off+1];
-                        B = buf[off+2];
-
-                        YDU[off_1]   =((( 0.29900)*R+( 0.58700)*G+( 0.11400)*B))-0x80;
-                        UDU[off_1]   =(((-0.16874)*R+(-0.33126)*G+( 0.50000)*B));
-                        VDU[off_1++] =((( 0.50000)*R+(-0.41869)*G+(-0.08131)*B)); 
-                    }
-                }
-            }
         }
 
 
@@ -1234,15 +1237,31 @@
         }
 
         /**
+         * The encode function stub
+         * 
+         * quality:int 0-100
+         * img: pttJPEGImage object. The image object to encode
+         * bw: byteWriter object. The object that will be used to write the compressed data
+         * 
+         * uses auto for chroma sampling
+         * 
+         */
+        this.encode = function (quality, img, bw) {
+            this.encode_ext(quality, img, bw, "auto");
+        }
+
+
+        /**
          * The encode function
          * 
          * quality:int 0-100
          * img: pttJPEGImage object. The image object to encode
          * bw: byteWriter object. The object that will be used to write the compressed data
+         * sr: "444" for 4:4:4 chroma sampling "420" for 4:2:0 chroma sampling, "auto" for auto
          *
          * 
          */
-        this.encode = function (quality, img, bw)
+        this.encode_ext = function (quality, img, bw, sr)
         {
             if(!img) 
                 DEBUGMSG("input image not provided. aborting encode");
@@ -1250,11 +1269,21 @@
             if(!bw) 
                 DEBUGMSG("byte writer not provided. aborting encode");
 
-            DEBUGMSG(sprintf("pttjpeg_encode  qual:%d,  %dx%d", quality ,img.width,img.height ));
+            var _444 = true;
+            if(sr=="auto") {
+                if(quality>50) {
+                    _444 = true;
+                } else {
+                    _444 = false;
+                }
+            }
+
+            DEBUGMSG(sprintf("pttjpeg_encode  qual:%d,  %dx%d, %s:%s", quality ,img.width,img.height, sr, _444 ? "4:4:4": "4:2:0" ));
             var start = new Date().getTime();
 
             init_quality_settings(quality);
     
+            
 
             /* start the bitwriter */
             bitwriter = new BitWriter();
@@ -1267,7 +1296,7 @@
             bitwriter.putshort( 0xFFD8); // SOI
             writeAPP0();
             writeDQT();
-            writeSOF0( img.width, img.height );
+            writeSOF0( img.width, img.height, _444 );
             writeDHT();
             writeSOS();
 
@@ -1282,16 +1311,34 @@
             var mcucount = 0;
 
 
-            for (ypos=0; ypos<height; ypos+=8)
-            {
-                for (xpos=0; xpos<width; xpos+=8)
+            if(_444) {
+                // 4:4:4 
+                for (ypos=0; ypos<height; ypos+=8)
                 {
-                    rgb2yuv_444( xpos, ypos);
-                    DCY = processDU( YDU, fdtbl_Y, DCY, YDC_HT, YAC_HT);
-                    DCU = processDU( UDU, fdtbl_UV, DCU, UVDC_HT, UVAC_HT);
-                    DCV = processDU( VDU, fdtbl_UV, DCV, UVDC_HT, UVAC_HT);
+                    for (xpos=0; xpos<width; xpos+=8)
+                    {
+                        rgb2yuv_444( xpos, ypos, YDU, UDU, VDU );
+                        DCY = processDU( YDU, fdtbl_Y, DCY, YDC_HT, YAC_HT);
+                        DCU = processDU( UDU, fdtbl_UV, DCU, UVDC_HT, UVAC_HT);
+                        DCV = processDU( VDU, fdtbl_UV, DCV, UVDC_HT, UVAC_HT);
 
 
+                    }
+                }
+            } else {
+                // 4:2:0 
+                for (ypos=0; ypos<height; ypos+=16)
+                {
+                    for(xpos=0; xpos<width; xpos += 16 )
+                    {
+                        rgb2yuv_420( xpos, ypos );
+                        DCY = processDU( YDU, fdtbl_Y, DCY, YDC_HT, YAC_HT);
+                        DCY = processDU( YDU2, fdtbl_Y, DCY, YDC_HT, YAC_HT);
+                        DCY = processDU( YDU3, fdtbl_Y, DCY, YDC_HT, YAC_HT);
+                        DCY = processDU( YDU4, fdtbl_Y, DCY, YDC_HT, YAC_HT);
+                        DCU = processDU( UDU, fdtbl_UV, DCU, UVDC_HT, UVAC_HT);
+                        DCV = processDU( VDU, fdtbl_UV, DCV, UVDC_HT, UVAC_HT);
+                    }
                 }
             }
 

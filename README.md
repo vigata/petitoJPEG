@@ -112,8 +112,19 @@ worker.onmessage = function(msg) {
 
 ```
 
-### Limitations ###
-* images are encoded to 4:4:4 chroma sampling only. 4:2:2 and 4:2:0 should be added but it would require chroma plane downsampling making things slower. There is work in progress to add 4:2:0 support`
+### 4:4:4 and 4:2:0 chroma encoding ###
+* petitoJPEG automatically selects the chroma encoding format depending on the quality specified, downsampling chroma planes if necessary. To force a particular chroma sampling format, you can use the following API:
+```javascript
+var quality = 50; //a number between 1-99, 1: best compression-worst quality, 99: least compression-best quality
+
+var sr = "4:4:4";  // "4:4:4", "4:2:0" or simply "auto" for auto selection
+
+encoder.encode_ext( quality, inImage, bw, sr );
+
+...
+
+
+```
 
 ### Tips ###
 Due to cross origin limitations some browsers limit local file access to JS APIs. This behavior can usually be overidden by the user through switches on startup. On chrome for example you can use  --allow-file-access-from-files  to allow file access.
