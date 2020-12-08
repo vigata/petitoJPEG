@@ -1,5 +1,5 @@
 /* @@--
- * Copyright (C) 2014 Alberto Vigata
+ * Copyright (C) 2020 Alberto Vigata
  * All rights reserved
  * 
  * Redistribution and use in source and binary forms, with or without
