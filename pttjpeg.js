@@ -586,7 +586,7 @@
             {
                 for (j=1; j<=nrcodes[k]; ++j)
                 {
-                    var bs = new BitString();
+                    bs = new BitString();
                     bs.val = codevalue;
                     bs.len = k;
                     HT[std_table[pos_in_table]] = bs;
