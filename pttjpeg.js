@@ -1044,15 +1044,15 @@
         // takes 4 DU units and downsamples them 2:1 using simple averaging
 
         function downsample_8_line(DU, outoff, DU1, DU2, inoff) {
-            DU[outoff + 0] = (DU1[inoff + 00] + DU1[inoff + 01] + DU1[inoff + 08] + DU1[inoff + 09] + 2)>>2;
-            DU[outoff + 1] = (DU1[inoff + 02] + DU1[inoff + 03] + DU1[inoff + 10] + DU1[inoff + 11] + 2)>>2;
-            DU[outoff + 2] = (DU1[inoff + 04] + DU1[inoff + 05] + DU1[inoff + 12] + DU1[inoff + 13] + 2)>>2;
-            DU[outoff + 3] = (DU1[inoff + 06] + DU1[inoff + 07] + DU1[inoff + 14] + DU1[inoff + 15] + 2)>>2;
+            DU[outoff + 0] = (DU1[inoff + 0] + DU1[inoff + 1] + DU1[inoff + 8] + DU1[inoff + 9] + 2)>>2;
+            DU[outoff + 1] = (DU1[inoff + 2] + DU1[inoff + 3] + DU1[inoff + 10] + DU1[inoff + 11] + 2)>>2;
+            DU[outoff + 2] = (DU1[inoff + 4] + DU1[inoff + 5] + DU1[inoff + 12] + DU1[inoff + 13] + 2)>>2;
+            DU[outoff + 3] = (DU1[inoff + 6] + DU1[inoff + 7] + DU1[inoff + 14] + DU1[inoff + 15] + 2)>>2;
 
-            DU[outoff + 4] = (DU2[inoff + 00] + DU2[inoff + 01] + DU2[inoff + 08] + DU2[inoff + 09] + 2)>>2;
-            DU[outoff + 5] = (DU2[inoff + 02] + DU2[inoff + 03] + DU2[inoff + 10] + DU2[inoff + 11] + 2)>>2;
-            DU[outoff + 6] = (DU2[inoff + 04] + DU2[inoff + 05] + DU2[inoff + 12] + DU2[inoff + 13] + 2)>>2;
-            DU[outoff + 7] = (DU2[inoff + 06] + DU2[inoff + 07] + DU2[inoff + 14] + DU2[inoff + 15] + 2)>>2;
+            DU[outoff + 4] = (DU2[inoff + 0] + DU2[inoff + 1] + DU2[inoff + 8] + DU2[inoff + 9] + 2)>>2;
+            DU[outoff + 5] = (DU2[inoff + 2] + DU2[inoff + 3] + DU2[inoff + 10] + DU2[inoff + 11] + 2)>>2;
+            DU[outoff + 6] = (DU2[inoff + 4] + DU2[inoff + 5] + DU2[inoff + 12] + DU2[inoff + 13] + 2)>>2;
+            DU[outoff + 7] = (DU2[inoff + 6] + DU2[inoff + 7] + DU2[inoff + 14] + DU2[inoff + 15] + 2)>>2;
         }
 
         function downsample_DU(DU, DU1, DU2, DU3, DU4) {
