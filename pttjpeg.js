@@ -245,11 +245,6 @@
         var byteswritten = 0;
 
         // private methods
-        function reset_writer() {
-            byteswritten = 0;
-            bufptr = 0;
-            bitcount = 0;
-        }
 
         function output_buffer() {
             if(bw) {
@@ -281,7 +276,7 @@
         }
 
         // This ensures there is at least 16 free bits in the buffer
-        function emptybitbuffer_16(pbs) {
+        function emptybitbuffer_16() {
             /* the following loop always adds two bytes at least. to the bitcache*/
             if( bitcount >16   ){
                 emptybitbuffer();
@@ -478,7 +473,6 @@
         var VDU3 = new Float64Array(64);
         var VDU4 = new Float64Array(64);
 
-        var DU = new Int32Array(64);
         var YTable = new Int32Array(64);
         var UVTable = new Int32Array(64);
         var outputfDCTQuant = new Int32Array(64);
@@ -886,7 +880,6 @@
         //--------------------------------------------------------------------
         // Block Processing
 
-        function huffman_extend(mag,size) { return ((mag) < (1<<((size)-1)) ? (mag) + (((-1)<<(size)) + 1) : (mag)); }
         function huffman_compact(mag,size) { return ((mag)<0 ? mag + (1<<size)-1 : mag); }
         function log2(x, res) {res = 0; while( x!=0 ){ x>>=1; res++; } return res; }
         function abs(x) { return ((x)>0?(x):(-(x)))}
@@ -1001,8 +994,6 @@
             // DEBUGMSG(sprintf("getpixels() xpos:%d ypos:%d retw:%d reth:%d", xpos, ypos, mcuimg.w, mcuimg.h ));
 
             var buf = mcuimg.buf;
-            var pel;
-            var P=0;
             var x,y,off,off_1=0,R,G,B;
 
             if( mcuimg.w==8 && mcuimg.h==8 ) {
@@ -1197,7 +1188,6 @@
         this.pttImage = function(imageData) {
             var width = imageData.width;
             var height = imageData.height;
-            var id = imageData;
             var buf = imageData.data; // Uint8Array()
             this.width = width;
             this.height = height;
@@ -1309,7 +1299,6 @@
             var width=img.width;
             var height=img.height;
             var ypos,xpos;
-            var mcucount = 0;
 
 
             if(_444) {
@@ -1354,9 +1343,7 @@
         /**
          * Setup the encoding envinment object
          */
-        var startup = (function() {
-            init_huffman_tables();
-        }());
+        init_huffman_tables();
     }
 
 
