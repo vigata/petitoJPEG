@@ -1,10 +1,10 @@
 /* @@--
  * Copyright (C) 2020 Alberto Vigata
  * All rights reserved
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -13,7 +13,7 @@
  *     * Neither the name of the University of California, Berkeley nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -204,7 +204,7 @@
         ctx.sprintf = sprintf;
         ctx.vsprintf = vsprintf;
     })(ct);
-    var sprintf = ct.sprintf;  
+    var sprintf = ct.sprintf;
 
     var flagQuiet = false;
 
@@ -224,7 +224,7 @@
 
 
     //-------------------------------------------------------------------------------------------
-    // petitoJPEG routines 
+    // petitoJPEG routines
     //-------------------------------------------------------------------------------------------
 
     /**
@@ -236,7 +236,7 @@
      *
      */
     function BitWriter() {
-        var _this = this; 
+        var _this = this;
         var bufsize = 1024;
         var buf = new Uint8Array(bufsize);
         var bufptr = 0;
@@ -245,11 +245,6 @@
         var byteswritten = 0;
 
         // private methods
-        function reset_writer() {
-            byteswritten = 0;
-            bufptr = 0;
-            bitcount = 0;
-        };
 
         function output_buffer() {
             if(bw) {
@@ -257,7 +252,7 @@
             }
             byteswritten += bufptr;
             bufptr = 0;
-        };
+        }
 
         function emptybitbuffer(){
             do {  /* Check if we need to dump buffer*/
@@ -281,7 +276,7 @@
         }
 
         // This ensures there is at least 16 free bits in the buffer
-        function emptybitbuffer_16(pbs) {
+        function emptybitbuffer_16() {
             /* the following loop always adds two bytes at least. to the bitcache*/
             if( bitcount >16   ){
                 emptybitbuffer();
@@ -289,8 +284,8 @@
         }
 
         function shovebits( val,  bits) {
-            bitcache |= (val & ((1<<(bits))-1))  << (32 - bitcount - bits ); 
-            bitcount+= bits; 
+            bitcache |= (val & ((1<<(bits))-1))  << (32 - bitcount - bits );
+            bitcount+= bits;
         }
 
 
@@ -346,7 +341,7 @@
     }
 
     //-------------------------------------------------------------------------------------------
-    // encoding tables 
+    // encoding tables
     //-------------------------------------------------------------------------------------------
     var std_dc_luminance_nrcodes = new Uint32Array([0,0,1,5,1,1,1,1,1,1,0,0,0,0,0,0,0]);
     var std_dc_luminance_values = new Uint32Array([0,1,2,3,4,5,6,7,8,9,10,11]);
@@ -454,7 +449,7 @@
             ]);
 
     //-------------------------------------------------------------------------------------------
-    // PTTJPEG object 
+    // PTTJPEG object
     //-------------------------------------------------------------------------------------------
     function PTTJPEG() {
 
@@ -471,30 +466,30 @@
         var UDU2 = new Float64Array(64);
         var UDU3 = new Float64Array(64);
         var UDU4 = new Float64Array(64);
-        
+
         var VDU = new Float64Array(64);
         var VDU1 = new Float64Array(64);
         var VDU2 = new Float64Array(64);
         var VDU3 = new Float64Array(64);
         var VDU4 = new Float64Array(64);
 
-        var DU = new Int32Array(64);
         var YTable = new Int32Array(64);
         var UVTable = new Int32Array(64);
         var outputfDCTQuant = new Int32Array(64);
 
         var sf = 1; // int. the scale factor
 
-        var inputImage; 
+        var inputImage;
+        var bitwriter;
 
 
-        /** 
+        /**
          * BitString class
          */
         function BitString() {
             this.val = 0;
             this.len = 0;
-        };
+        }
 
         var YDC_HT = new Array(256);
         var UVDC_HT= new Array(256);
@@ -507,7 +502,7 @@
 
         /**
          * var quality:int
-         * 
+         *
          */
         var init_quality_settings = function (quality) {
             if (quality <= 0)
@@ -522,7 +517,7 @@
             init_quant_tables(sf);
         };
 
-        /** 
+        /**
          * var sf:int: the scale factor
          * @returns
          */
@@ -569,7 +564,7 @@
         /**
          * const int nrcodes[]
          * const int std_table[]
-         * BitString HT, Array(BitsString) 
+         * BitString HT, Array(BitsString)
          *
          */
         var computeHuffmanTbl = function (nrcodes, std_table, HT)
@@ -591,7 +586,7 @@
             {
                 for (j=1; j<=nrcodes[k]; ++j)
                 {
-                    var bs = new BitString();
+                    bs = new BitString();
                     bs.val = codevalue;
                     bs.len = k;
                     HT[std_table[pos_in_table]] = bs;
@@ -605,16 +600,16 @@
 
         /**
          * Initialize huffman tables
-         */ 
-        var init_huffman_tables = function() 
+         */
+        var init_huffman_tables = function()
         {
             computeHuffmanTbl(std_dc_luminance_nrcodes,std_dc_luminance_values,YDC_HT);
             computeHuffmanTbl(std_dc_chrominance_nrcodes,std_dc_chrominance_values, UVDC_HT);
             computeHuffmanTbl(std_ac_luminance_nrcodes,std_ac_luminance_values, YAC_HT);
-            computeHuffmanTbl(std_ac_chrominance_nrcodes,std_ac_chrominance_values, UVAC_HT); 
+            computeHuffmanTbl(std_ac_chrominance_nrcodes,std_ac_chrominance_values, UVAC_HT);
         }
 
-        /** 
+        /**
          *
          * DCT and quantization core
          *
@@ -633,7 +628,7 @@
             var I64 = 64;
 
             for (i=0; i<I8; ++i)
-            {	
+            {
                 d0 = data[dataOff];
                 d1 = data[dataOff+1];
                 d2 = data[dataOff+2];
@@ -785,15 +780,15 @@
             bitwriter.putshort(height);
             bitwriter.putshort(width);
             bitwriter.putbyte(3);    // nrofcomponents
-            
-            bitwriter.putbyte(1);    // IdY. id of Y 
-            bitwriter.putbyte(_444 ? 0x11 : 0x22); // HVY. sampling factor horizontal Y  | sampling factor vertical Y
-            bitwriter.putbyte(0);    // QTY. quantization table table  
 
-            bitwriter.putbyte(2);    // IdU 
+            bitwriter.putbyte(1);    // IdY. id of Y
+            bitwriter.putbyte(_444 ? 0x11 : 0x22); // HVY. sampling factor horizontal Y  | sampling factor vertical Y
+            bitwriter.putbyte(0);    // QTY. quantization table table
+
+            bitwriter.putbyte(2);    // IdU
             bitwriter.putbyte(_444 ? 0x11 : 0x11); // HVU sampling factor horizontal U  | sampling factor vertical U. 0x11 -> 4:4:4, 0x22 -> 4:2:0
             bitwriter.putbyte(1);    // QTU
-            
+
             bitwriter.putbyte(3);    // IdV
             bitwriter.putbyte(_444 ? 0x11 : 0x11); // HVV sampling factor horizontal V  | sampling factor vertical V. 0x11 -> 4:4:4, 0x22 -> 4:2:0
             bitwriter.putbyte(1);    // QTV
@@ -885,12 +880,11 @@
         //--------------------------------------------------------------------
         // Block Processing
 
-        function huffman_extend(mag,size) { return ((mag) < (1<<((size)-1)) ? (mag) + (((-1)<<(size)) + 1) : (mag)); }
         function huffman_compact(mag,size) { return ((mag)<0 ? mag + (1<<size)-1 : mag); }
         function log2(x, res) {res = 0; while( x!=0 ){ x>>=1; res++; } return res; }
         function abs(x) { return ((x)>0?(x):(-(x)))}
 
-        /** 
+        /**
          * double CDU[]
          * double fdtbl[]
          * double DC
@@ -915,7 +909,7 @@
             //DC CODING
 
             // DC Size
-            var dc_size = 0, diffabs = abs(dc_diff);    
+            var dc_size = 0, diffabs = abs(dc_diff);
             dc_size = log2(diffabs, dc_size);
 
             bitwriter.putbits(HTDC[dc_size].val, HTDC[dc_size].len );
@@ -935,7 +929,7 @@
             var maxcoeff = 64; // int
 
             var i = 0;
-            while( 1 )
+            for(;;)
             {
                 // find next coefficient to code
                 i++;
@@ -971,7 +965,7 @@
                 lastcoeff_pos = i;
             }
 
-            // Write EOB 
+            // Write EOB
             if( lastcoeff_pos != 63 )
                 bitwriter.putbits(HTAC[0].val, HTAC[0].len );
 
@@ -1000,13 +994,11 @@
             // DEBUGMSG(sprintf("getpixels() xpos:%d ypos:%d retw:%d reth:%d", xpos, ypos, mcuimg.w, mcuimg.h ));
 
             var buf = mcuimg.buf;
-            var pel;
-            var P=0;
             var x,y,off,off_1=0,R,G,B;
 
             if( mcuimg.w==8 && mcuimg.h==8 ) {
                 /* block is 8x8 */
-                for ( y=0; y<8; y++) {        
+                for ( y=0; y<8; y++) {
                     for (x=0; x<8; x++) {
                         off = mcuimg.offset + y*mcuimg.stride + x*4;
 
@@ -1016,7 +1008,7 @@
 
                         YDU[off_1]   =((( 0.29900)*R+( 0.58700)*G+( 0.11400)*B))-0x80;
                         UDU[off_1]   =(((-0.16874)*R+(-0.33126)*G+( 0.50000)*B));
-                        VDU[off_1++] =((( 0.50000)*R+(-0.41869)*G+(-0.08131)*B)); 
+                        VDU[off_1++] =((( 0.50000)*R+(-0.41869)*G+(-0.08131)*B));
                     }
                 }
             } else {
@@ -1042,7 +1034,7 @@
 
                         YDU[off_1]   =((( 0.29900)*R+( 0.58700)*G+( 0.11400)*B))-0x80;
                         UDU[off_1]   =(((-0.16874)*R+(-0.33126)*G+( 0.50000)*B));
-                        VDU[off_1++] =((( 0.50000)*R+(-0.41869)*G+(-0.08131)*B)); 
+                        VDU[off_1++] =((( 0.50000)*R+(-0.41869)*G+(-0.08131)*B));
                     }
                 }
             }
@@ -1050,17 +1042,17 @@
 
 
         // takes 4 DU units and downsamples them 2:1 using simple averaging
-        
-        function downsample_8_line(DU, outoff, DU1, DU2, inoff) {
-            DU[outoff + 0] = (DU1[inoff + 00] + DU1[inoff + 01] + DU1[inoff + 08] + DU1[inoff + 09] + 2)>>2;
-            DU[outoff + 1] = (DU1[inoff + 02] + DU1[inoff + 03] + DU1[inoff + 10] + DU1[inoff + 11] + 2)>>2;
-            DU[outoff + 2] = (DU1[inoff + 04] + DU1[inoff + 05] + DU1[inoff + 12] + DU1[inoff + 13] + 2)>>2;
-            DU[outoff + 3] = (DU1[inoff + 06] + DU1[inoff + 07] + DU1[inoff + 14] + DU1[inoff + 15] + 2)>>2;
 
-            DU[outoff + 4] = (DU2[inoff + 00] + DU2[inoff + 01] + DU2[inoff + 08] + DU2[inoff + 09] + 2)>>2;
-            DU[outoff + 5] = (DU2[inoff + 02] + DU2[inoff + 03] + DU2[inoff + 10] + DU2[inoff + 11] + 2)>>2;
-            DU[outoff + 6] = (DU2[inoff + 04] + DU2[inoff + 05] + DU2[inoff + 12] + DU2[inoff + 13] + 2)>>2;
-            DU[outoff + 7] = (DU2[inoff + 06] + DU2[inoff + 07] + DU2[inoff + 14] + DU2[inoff + 15] + 2)>>2;
+        function downsample_8_line(DU, outoff, DU1, DU2, inoff) {
+            DU[outoff + 0] = (DU1[inoff + 0] + DU1[inoff + 1] + DU1[inoff + 8] + DU1[inoff + 9] + 2)>>2;
+            DU[outoff + 1] = (DU1[inoff + 2] + DU1[inoff + 3] + DU1[inoff + 10] + DU1[inoff + 11] + 2)>>2;
+            DU[outoff + 2] = (DU1[inoff + 4] + DU1[inoff + 5] + DU1[inoff + 12] + DU1[inoff + 13] + 2)>>2;
+            DU[outoff + 3] = (DU1[inoff + 6] + DU1[inoff + 7] + DU1[inoff + 14] + DU1[inoff + 15] + 2)>>2;
+
+            DU[outoff + 4] = (DU2[inoff + 0] + DU2[inoff + 1] + DU2[inoff + 8] + DU2[inoff + 9] + 2)>>2;
+            DU[outoff + 5] = (DU2[inoff + 2] + DU2[inoff + 3] + DU2[inoff + 10] + DU2[inoff + 11] + 2)>>2;
+            DU[outoff + 6] = (DU2[inoff + 4] + DU2[inoff + 5] + DU2[inoff + 12] + DU2[inoff + 13] + 2)>>2;
+            DU[outoff + 7] = (DU2[inoff + 6] + DU2[inoff + 7] + DU2[inoff + 14] + DU2[inoff + 15] + 2)>>2;
         }
 
         function downsample_DU(DU, DU1, DU2, DU3, DU4) {
@@ -1088,7 +1080,7 @@
          * The method converts the RGB pixels into YUV ready for further processing. The destination
          * pixels are written to the local private PTTJPEG fields YDU[2,3,4],UDU,VDU
          *
-         * 
+         *
          * output: for luma blocks. YDU, YDU2, YDU3, YDU4
          *         2 chroma blocks, UDU, VDU
          *
@@ -1122,7 +1114,7 @@
 
             /**
              * Base64 encoding.
-             * input:Uint8Array 
+             * input:Uint8Array
              * output:String
              */
             var base64EncodeFromUint8Array = function(input) {
@@ -1188,7 +1180,7 @@
             this.getWrittenBytes = function() {
                 return bufptr;
             }
-            
+
         }
 
         this.dlog = DEBUGMSG;
@@ -1196,7 +1188,6 @@
         this.pttImage = function(imageData) {
             var width = imageData.width;
             var height = imageData.height;
-            var id = imageData;
             var buf = imageData.data; // Uint8Array()
             this.width = width;
             this.height = height;
@@ -1214,9 +1205,9 @@
             /**
              * returns an mcuPixels object with data for a
              * specific mcu
-             */ 
+             */
             this.getPixels = function(xpos, ypos, w, h) {
-                // only valid for RGBA data 
+                // only valid for RGBA data
                 var ret = new this.mcuPixels();
                 ret.buf = buf;
                 ret.stride = width*4;
@@ -1238,13 +1229,13 @@
 
         /**
          * The encode function stub
-         * 
+         *
          * quality:int 0-100
          * img: pttJPEGImage object. The image object to encode
          * bw: byteWriter object. The object that will be used to write the compressed data
-         * 
+         *
          * uses auto for chroma sampling
-         * 
+         *
          */
         this.encode = function (quality, img, bw) {
             this.encode_ext(quality, img, bw, "auto");
@@ -1253,20 +1244,20 @@
 
         /**
          * The encode function
-         * 
+         *
          * quality:int 0-100
          * img: pttJPEGImage object. The image object to encode
          * bw: byteWriter object. The object that will be used to write the compressed data
          * sr: "444" for 4:4:4 chroma sampling "420" for 4:2:0 chroma sampling, "auto" for auto
          *
-         * 
+         *
          */
         this.encode_ext = function (quality, img, bw, sr)
         {
-            if(!img) 
+            if(!img)
                 DEBUGMSG("input image not provided. aborting encode");
 
-            if(!bw) 
+            if(!bw)
                 DEBUGMSG("byte writer not provided. aborting encode");
 
             var _444 = true;
@@ -1282,8 +1273,8 @@
             var start = new Date().getTime();
 
             init_quality_settings(quality);
-    
-            
+
+
 
             /* start the bitwriter */
             bitwriter = new BitWriter();
@@ -1308,11 +1299,10 @@
             var width=img.width;
             var height=img.height;
             var ypos,xpos;
-            var mcucount = 0;
 
 
             if(_444) {
-                // 4:4:4 
+                // 4:4:4
                 for (ypos=0; ypos<height; ypos+=8)
                 {
                     for (xpos=0; xpos<width; xpos+=8)
@@ -1326,7 +1316,7 @@
                     }
                 }
             } else {
-                // 4:2:0 
+                // 4:2:0
                 for (ypos=0; ypos<height; ypos+=16)
                 {
                     for(xpos=0; xpos<width; xpos += 16 )
@@ -1353,9 +1343,7 @@
         /**
          * Setup the encoding envinment object
          */
-        var startup = (function() {
-            init_huffman_tables();
-        }());
+        init_huffman_tables();
     }
 
 
