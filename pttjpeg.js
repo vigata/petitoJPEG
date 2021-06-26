@@ -486,6 +486,7 @@
         var sf = 1; // int. the scale factor
 
         var inputImage;
+        var bitwriter;
 
 
         /**
