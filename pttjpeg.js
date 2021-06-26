@@ -249,7 +249,7 @@
             byteswritten = 0;
             bufptr = 0;
             bitcount = 0;
-        };
+        }
 
         function output_buffer() {
             if(bw) {
@@ -257,7 +257,7 @@
             }
             byteswritten += bufptr;
             bufptr = 0;
-        };
+        }
 
         function emptybitbuffer(){
             do {  /* Check if we need to dump buffer*/
@@ -495,7 +495,7 @@
         function BitString() {
             this.val = 0;
             this.len = 0;
-        };
+        }
 
         var YDC_HT = new Array(256);
         var UVDC_HT= new Array(256);
