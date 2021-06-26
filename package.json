@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "eslint": "^7.29.0"
+  },
+  "prettier": {
+    "trailingComma": "all",
+    "tabWidth": 4,
+    "singleQuote": true
+  }
+}
