@@ -929,7 +929,7 @@
             var maxcoeff = 64; // int
 
             var i = 0;
-            while( 1 )
+            for(;;)
             {
                 // find next coefficient to code
                 i++;
