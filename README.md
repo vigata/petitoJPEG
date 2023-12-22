@@ -45,7 +45,7 @@ var bw = new myByteWriter();
 //pttImage constructor accepts an ImageData object as return by the 
 // getImageData() of the canvas context so you can just:
 
-var inImage = new encoder.pttImage( myImageDataObject );
+var inImage = new encoder.pttImage( { width : imageWidth, height : imageHeight, data : myImageDataObject } );
 ```
 3) Fire up the encoder
 ```javascript
